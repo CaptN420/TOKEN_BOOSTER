@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boster"
+version = "0.1.0"
+description = "Deterministic token savers: tool-output compressor, history summarizer, context budget"
+requires-python = ">=3.10"
+
+[project.scripts]
+boster = "boster.cli:main"
+
+[tool.setuptools]
+packages = ["boster"]

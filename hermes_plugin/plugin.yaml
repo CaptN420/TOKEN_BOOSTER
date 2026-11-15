@@ -1,0 +1,7 @@
+name: boster
+version: 0.1.0
+description: "Compress noisy terminal output (progress bars, banners, cached-pip lines) with Boster before it enters the LLM context. Deterministic, fail-open, logs savings."
+author: "celes"
+provides_hooks:
+  - transform_terminal_output
+  - transform_tool_result
