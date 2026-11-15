@@ -28,6 +28,14 @@ from .context.relevance import score_message, rank_messages
 from .context.deduplication import deduplicate_messages
 from .adapters import ProviderAdapter, OpenAIAdapter, AnthropicAdapter, OllamaAdapter, get_adapter
 
+# v2.0 Context Intelligence
+from .intelligence.monitor import ContextMonitor, CompressionMode, ThresholdConfig
+from .intelligence.compressor import ContextCompressor, CompressionResult
+from .intelligence.integrity import ContextIntegrityEngine, FactRelation
+from .intelligence.snapshot import Snapshot as ContextSnapshot, SnapshotManager
+from .intelligence.cache_awareness import CacheAwareness, CacheImpactReport
+from .adapters.kv_cache import KVCacheAdapter, CacheStats
+
 __version__ = "1.0.0"
 
 __all__ = [

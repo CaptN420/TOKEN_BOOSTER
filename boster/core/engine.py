@@ -17,6 +17,13 @@ from ..memory.retrieval import hybrid_search
 from .optimizer import optimize_prompt
 from .policies import PreservationPolicy, SafetyCheck, CompressionAudit
 
+# v2.0 intelligence modules
+from ..intelligence.monitor import ContextMonitor, CompressionMode, ThresholdConfig
+from ..intelligence.compressor import ContextCompressor, CompressionResult
+from ..intelligence.integrity import ContextIntegrityEngine
+from ..intelligence.snapshot import SnapshotManager
+from ..intelligence.cache_awareness import CacheAwareness, CacheImpactReport
+
 logger = logging.getLogger("boster.engine")
 
 
@@ -30,6 +37,11 @@ class OptimizeResult:
     savings_percentage: float = 0.0
     cost_estimate_usd: float = 0.0
     audit: Optional[CompressionAudit] = None
+    # v2.0 fields
+    compression_triggered: bool = False
+    compression_level: int = 0
+    cache_impact: Optional[CacheImpactReport] = None
+    snapshot_id: Optional[str] = None
 
 
 class Boster:
@@ -42,6 +54,7 @@ class Boster:
       - Memory management
       - Prompt optimization
       - Cost estimation
+      - v2.0: Smart compression with KV cache awareness
     """
 
     def __init__(
@@ -67,6 +80,16 @@ class Boster:
             model=model,
         )
         self._policy = PreservationPolicy()
+
+        # v2.0 intelligence engines
+        self._monitor = ContextMonitor(
+            max_context_tokens=max_context_tokens,
+            mode=CompressionMode.THRESHOLD,
+        )
+        self._compressor = ContextCompressor()
+        self._integrity = ContextIntegrityEngine()
+        self._snapshots = SnapshotManager()
+        self._cache_awareness = CacheAwareness()
 
     # ── Token counting ────────────────────────────────────────────────
 
@@ -106,6 +129,9 @@ class Boster:
     ) -> OptimizeResult:
         """Optimize conversation messages within token budget.
 
+        v2.0 behavior: compression is ONLY triggered when the monitor
+        indicates it's warranted. In passive mode, no compression occurs.
+
         Args:
             messages: Conversation history.
             query: Current user query for relevance scoring.
@@ -115,22 +141,49 @@ class Boster:
         """
         tokens_before = self.estimate_messages_tokens(messages)
 
-        # Apply compression to long messages
+        # Update monitor with current state
+        report = self._monitor.update(tokens_before)
+
+        # Check if compression is warranted
+        if not report.should_compress:
+            # No compression needed — return messages as-is
+            return OptimizeResult(
+                optimized_messages=list(messages),
+                tokens_before=tokens_before,
+                tokens_after=tokens_before,
+                tokens_saved=0,
+                savings_percentage=0.0,
+                cost_estimate_usd=cost_estimate(tokens_before, self.output_token_reserve, self.model),
+            )
+
+        # Create snapshot before compression (for reversibility)
+        snapshot = self._snapshots.create(
+            label=f"Pre-compression at {report.utilization:.0%} utilization",
+            facts=[{"content": m.get("content", "")[:100], "source_message_index": i}
+                   for i, m in enumerate(messages[:10])],
+            token_count=tokens_before,
+        )
+
+        # Analyze cache impact
+        full_text = "\n".join(m.get("content", "") for m in messages)
+        cache_impact = self._cache_awareness.analyze_prefix_change(full_text, full_text)
+
+        # Apply compression only to messages that need it
         optimized = []
+        total_saved = 0
         for msg in messages:
             content = msg.get("content", "")
             if isinstance(content, str) and len(content) > 500:
-                compressed = self.compress(content)
-                optimized.append({**msg, "content": compressed})
+                comp_result = self._compressor.compress(content)
+                optimized.append({**msg, "content": comp_result.compressed_text})
+                total_saved += comp_result.tokens_saved
             else:
                 optimized.append(msg)
 
-        # Apply context budget using new BudgetConfig/SelectionResult
-        from .budget import BudgetConfig, SelectionResult
-        cfg = self._budget_config or BudgetConfig()
-        # Use simple token counting for empty messages
-        tokens_after = 0
-        tokens_saved = tokens_before
+        self._monitor.record_compression()
+
+        tokens_after = self.estimate_messages_tokens(optimized)
+        tokens_saved = max(0, tokens_before - tokens_after)
 
         return OptimizeResult(
             optimized_messages=optimized,
@@ -138,7 +191,11 @@ class Boster:
             tokens_after=tokens_after,
             tokens_saved=tokens_saved,
             savings_percentage=((tokens_before - tokens_after) / max(tokens_before, 1)) * 100,
-            cost_estimate_usd=cost_estimate(tokens_after, 500, self.model),
+            cost_estimate_usd=cost_estimate(tokens_after, self.output_token_reserve, self.model),
+            compression_triggered=True,
+            compression_level=self.compression_level,
+            cache_impact=cache_impact,
+            snapshot_id=snapshot.id if snapshot else None,
         )
 
     def optimize_context(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -195,7 +252,48 @@ class Boster:
             "output_token_reserve": self.output_token_reserve,
             "memory_entries": self._memory.count,
             "memory_summary": self._memory.get_summary(),
+            # v2.0 stats
+            "monitor_mode": self._monitor.mode.value,
+            "compression_count": self._monitor.compression_count,
+            "snapshot_count": self._snapshots.count,
         }
+
+    # ── v2.0 Public API ───────────────────────────────────────────────
+
+    @property
+    def monitor(self) -> ContextMonitor:
+        """Access the context monitor."""
+        return self._monitor
+
+    @property
+    def compressor(self) -> ContextCompressor:
+        """Access the context compressor."""
+        return self._compressor
+
+    @property
+    def integrity_engine(self) -> ContextIntegrityEngine:
+        """Access the context integrity engine."""
+        return self._integrity
+
+    @property
+    def snapshots(self) -> SnapshotManager:
+        """Access the snapshot manager."""
+        return self._snapshots
+
+    @property
+    def cache_awareness(self) -> CacheAwareness:
+        """Access the cache awareness analyzer."""
+        return self._cache_awareness
+
+    def set_compression_mode(self, mode: str | CompressionMode) -> None:
+        """Change compression mode (Passive, Threshold, Task Boundary)."""
+        if isinstance(mode, str):
+            mode = CompressionMode(mode)
+        self._monitor.mode = mode
+
+    def take_snapshot(self, label: str = "", summary: str = "") -> Any:
+        """Take a manual snapshot of current context state."""
+        return self._snapshots.create(label=label, summary=summary)
 
 
 __all__ = ["Boster", "OptimizeResult"]
