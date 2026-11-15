@@ -1,71 +1,93 @@
-# Boster × Hermes — documentation
+# Boster × Hermes — guide d'installation
 
-## 1. Origin and findings
-- Extracted from `Life_mean_realm_STOP` (`code_lab/compression`, originally CaptN-BRAIN).
-- A/B test (3 runs with the folder in the workspace, 3 without): prompt tokens 12 412 vs 12 414,
-  speed 18–32 tok/s in both cases (noise). **The folder itself does not make Hermes faster.**
-- `captn_runtime.CaptNRuntime.run()` returns a *simulated* response (no LLM call), so only the
-  compression modules were kept.
+Boster compresse automatiquement la sortie des outils avant qu'elle n'entre
+dans le contexte du modèle (hooks `transform_terminal_output` +
+`transform_tool_result`). Déterministe, stdlib-only, fail-open : une erreur ne
+casse jamais un appel d'outil.
 
-## 2. Layout
+## Prérequis
+- Hermes Agent installé (`hermes --version`).
+- Le paquet `boster` présent quelque part (ce repo clone/local).
+
+## 1. Installer `boster` dans la runtime Hermes (automatique, une fois)
+
+La runtime Hermes utilise sa propre venv. On y installe `boster` en editable
+pour que `import boster` marche nativement partout — plus besoin de `BOSTER_PATH`
+ni de chemin codé en dur.
+
+```bash
+uv pip install --python <CHEMIN_VENV_HERMES>/Scripts/python.exe -e .
 ```
-Boster/
-  boster/                 stdlib-only library + CLI (python -m boster / `boster`)
-    output_compressor.py  strip noise from tool output
-    history_compressor.py summarize old chat turns
-    context_budget.py     relevance-based selection within a token budget
-    cli.py                compress | history | budget | count
-  hermes_plugin/          source copy of the Hermes plugin
-  tests/test_boster.py    5 tests
-  docs/HERMES_INTEGRATION.md
+
+Retrouver la venv : `hermes doctor` affiche « Runtime venv staged
+(C:\...\installs\...\environments\<id>\venv) ». Sous Windows, le Python est
+`<id>\venv\Scripts\python.exe`.
+
+> editable (`-e .`) : les modifs de `boster/` sont prises en compte sans réinstaller.
+> Vérification : `cd ~ && python.exe -c "import boster; print(boster.__file__)"`.
+
+## 2. Copier le plugin
+
+```bash
+# depuis la racine du repo Boster
+cp hermes_plugin/plugin.yaml  hermes_plugin/__init__.py \
+   "$LOCALAPPDATA/hermes/profiles/<profil>/plugins/boster/"
+```
+Le dossier cible = `plugins/<nom>` du profil actif (`def` par défaut). `git clone`
+du repo → copier `boster/`, `hermes_plugin/` ; seul `hermes_plugin/` finit dans
+`plugins/`.
+
+## 3. Activer
+
+```bash
+hermes plugins enable boster
 ```
 
-## 3. What the compressor removes / keeps
-Removed: progress bars (`50%|###`), pure separator lines (`-----`, `=====`), `INFO/DEBUG/OK/SUCCESS`
-prefixed lines, timestamps, consecutive duplicates, blank runs, pip "already satisfied/Using cached"
-lines (replaced by a count marker).
-Kept: `ERROR` / `WARNING` lines, tracebacks, rule lines carrying text (`=== 3 passed ===`), everything else.
-Fixes vs the original: it used to drop `ERROR`/`WARNING` lines and pytest summaries.
+## 4. Vérifier que ça tire vraiment
+`enable` ne prouve pas que le hook se déclenche (voir skill `hermes-agent`,
+`references/plugins.md`). `enabled` ≠ « tiré dans la session courante ».
 
-## 4. Hermes plugin
-Location: `%LOCALAPPDATA%\hermes\profiles\def\plugins\boster\` (profile `def`), enabled with
-`hermes plugins enable boster`. `hermes_plugin/` in this repo is the source copy.
+1. `hermes plugins doctor boster` → registrations: 2 hook(s).
+2. Déclencher : une commande `terminal` avec >1500 chars de sortie bruyante
+   (pip, pytest, barres de progression), puis comparer le log :
+   ```bash
+   date +%s; tail -1 "$HERMES_HOME/logs/boster_savings.jsonl"   # ts récent = tiré
+   ```
+   Un `ts` à quelques secondes de `date +%s` prouve le tir en direct.
+3. Une session Hermes **déjà ouverte** garde son ancien jeu de plugins jusqu'au
+   `/reset` ou redémarrage de l'app.
 
-- Hook `transform_terminal_output` — runs on the output of every `terminal` call *before* it enters
-  the model context (uses the lossy `compress`, which may drop noise lines).
-- Hook `transform_tool_result` — runs on **every** tool result. Uses `safe_compress`
-  (ANSI strip + blank-run collapse only; head/tail cap is opt-in via `BOSTER_MAX_LINES`/`BOSTER_MAX_CHARS`,
-  default off). It NEVER dedupes consecutive lines or auto-detects format, so source files
-  (`read_file`), search results (`search_files`/grep) and browser dumps are not corrupted.
-- Both hooks: first string returned wins; any exception returns `None` (fail-open). Only outputs longer
-  than `BOSTER_MIN_CHARS` (1500) are processed, and only replaced if at least `BOSTER_MIN_SAVE` % (10) smaller.
-  The tool-result hook also skips non-`str` results (e.g. dict payloads).
-
-| Env var | Default | Role |
+## Variables
+| Env var | Par défaut | Rôle |
 |---|---|---|
-| `BOSTER_PATH` | `C:/Users/celes/Documents/Hermes-Workspace/Boster` | where the `boster` package lives |
+| `BOSTER_PATH` | (fallback) | dir du paquet `boster` — **plus requis** si installé dans la venv |
 | `BOSTER_DISABLE` | unset | `1` = no-op |
-| `BOSTER_MIN_CHARS` | 1500 | size threshold |
-| `BOSTER_MIN_SAVE` | 10 | minimum saving % to replace |
-| `BOSTER_MAX_LINES` | 0 (off) | tool-result head/tail cap (lines) |
-| `BOSTER_MAX_CHARS` | 0 (off) | tool-result hard char cap |
+| `BOSTER_MIN_CHARS` | 1500 | seuil de taille pour traiter une sortie |
+| `BOSTER_MIN_SAVE` | 10 | % de gain minimal pour remplacer |
+| `BOSTER_MAX_LINES` | 0 (off) | cap head/tail des résultats d'outils (lignes) |
+| `BOSTER_MAX_CHARS` | 0 (off) | cap dur en caractères |
 
-Moving the Boster folder requires setting `BOSTER_PATH`.
+## Ce que le plugin enlève / garde
+Enlève : barres de progression (`50%|###`), lignes séparatrices (`----`),
+lignes préfixées `INFO/DEBUG/OK/SUCCESS`, timestamps, doublons consécutifs,
+lignes pip « already satisfied/Using cached » (remplacées par un compteur).
+Garde : `ERROR`/`WARNING`, tracebacks, lignes porteuses de texte (`== 3 passed ==`).
 
-## 5. Verify / measure
-End-to-end test: a one-shot session ran `python -c` printing 80 "Requirement already satisfied" lines
-plus `ERROR boom`; the model still reported `ERROR boom` as the last line, and the log recorded
-3842 -> 55 chars (98.6 %).
+- `transform_terminal_output` : `compress` (lossy, peut retirer des lignes bruit).
+- `transform_tool_result` : `safe_compress` (**jamais** lossy) — strip ANSI,
+  collapse des lignes vides, cap opt-in. Ne déduplique pas, ne détecte pas de format,
+  ne touche pas les fichiers source / JSON / search.
 
-Savings log: `%LOCALAPPDATA%\hermes\profiles\def\logs\boster_savings.jsonl`
-(`ts, cmd, rc, before, after, saved_pct`).
-Tests: `uv run --no-project --with pytest python -m pytest tests -q`.
+## Désactiver / retirer
+```bash
+hermes plugins disable boster    # ou BOSTER_DISABLE=1
+hermes plugins remove boster
+```
 
-## 6. Disable / remove
-`hermes plugins disable boster` (or `BOSTER_DISABLE=1`); `hermes plugins remove boster` to uninstall.
-Sessions already running keep their old plugin set until restarted.
+## CLI seule (hors Hermes)
+`boster compress|history|budget|count` — voir `README.md`.
 
-## 7. Known limits
-- Savings are large only on noisy output (installs, test runs, logs); on clean text about 0.
-- Lossy by design: to get raw output, run with `BOSTER_DISABLE=1`.
-- `history` and `budget` are CLI-only; not hooked into Hermes (Hermes has its own context compression).
+## Tests
+```bash
+uv run --no-project --with pytest python -m pytest tests -q   # 17 passants
+```

@@ -7,8 +7,9 @@ Hooks (both fail-open, first string result wins):
                              cap) — NEVER drops content lines or dedupes, so source
                              files and search results are not corrupted.
 Env:
-  BOSTER_PATH       dir containing the `boster` package
-                    (default C:/Users/celes/Documents/Hermes-Workspace/Boster)
+  BOSTER_PATH       dir containing the `boster` package — fallback only. If the
+                    package is installed (uv pip install -e .) or importable,
+                    BOSTER_PATH is not needed.
   BOSTER_DISABLE=1  turn the plugin into a no-op
   BOSTER_MIN_CHARS  only touch outputs longer than this (default 1500)
   BOSTER_MIN_SAVE   only replace if >= this % smaller (default 10)
@@ -26,7 +27,9 @@ import time
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-_DEFAULT_PATH = "C:/Users/celes/Documents/Hermes-Workspace/Boster"
+# Fallback only: plugin's source-copy dir is <repo>/hermes_plugin, so the
+# `boster` package sits in the repo root (parents[1]).
+_FALLBACK_PATH = str(Path(__file__).resolve().parents[1])
 _compress = None
 _safe_compress = None
 
@@ -35,10 +38,14 @@ def _load():
     """Import the `boster` package once; cache both compressors."""
     global _compress, _safe_compress
     if _compress is None:
-        p = os.environ.get("BOSTER_PATH", _DEFAULT_PATH)
-        if p not in sys.path:
-            sys.path.insert(0, p)
-        from boster import compress_output, safe_compress
+        try:
+            # Prefer a natively installed boster (uv pip install -e .).
+            from boster import compress_output, safe_compress
+        except ImportError:
+            p = os.environ.get("BOSTER_PATH", _FALLBACK_PATH)
+            if p not in sys.path:
+                sys.path.insert(0, p)
+            from boster import compress_output, safe_compress
         _compress = compress_output
         _safe_compress = safe_compress
     return _compress, _safe_compress
