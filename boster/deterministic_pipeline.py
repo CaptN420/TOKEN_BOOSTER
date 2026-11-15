@@ -46,6 +46,15 @@ from .history_compressor import compress_history
 from .memory.consolidation import consolidate_to_episodes, message_id_for
 from .memory.manager import MemoryManager, classify_entry
 from .memory.models import UNKNOWN_TIME, Decision, Entity, Episode, MemoryItem, Relation
+from .memory.rendering import (
+    ZONE_DYNAMIC,
+    ZONE_HISTORICAL,
+    ZONE_ORDER,
+    ZONE_STABLE,
+    Section,
+    memo_for,
+    render_zones,
+)
 from .memory.retrieval import hybrid_search
 from .output_compressor import _auto_detect_format, safe_compress
 
@@ -147,6 +156,30 @@ KEEP_RECENT_BY_LEVEL: Dict[str, int] = {
     "balanced": 4,
     "complete": 8,
 }
+
+# How many retrieval-ranked facts the DYNAMIC zone carries. The stable zone keeps
+# every fact in memory order; this short section is where the retriever's ranking
+# lands, so the most relevant facts are always in the prompt without reordering the
+# stable zone (Phase KV CACHE 1 measured a 0,4–4,5 % reusable prefix when the
+# ranking reordered the facts inside the prefix).
+HIGHLIGHT_LIMIT = 3
+
+# Tokens held back from the stable zone so the dynamic zone always fits. A constant,
+# not a computed size: see the note where it is used.
+DYNAMIC_RESERVE_TOKENS = 160
+
+# Tokens held back from the stable zone for the HISTORICAL zone. Measured: without a
+# reserve, the stable zone filled the whole allowance and the historical zone got
+# nothing — the superseded decisions were omitted at every budget (2000 and 3000
+# tokens), so "history cannot be shown as current" was satisfied only by showing no
+# history at all. Also a constant, for the same prefix-stability reason.
+HISTORICAL_RESERVE_TOKENS = 240
+
+# Where the reconstructed block is placed (Phase KV CACHE 2, objective E).
+#   "system" — inside the system prompt (the historical behaviour)
+#   "suffix" — appended after the conversation, so the system prompt stays a
+#              byte-stable prefix and the query-conditioned zone travels last
+BLOCK_POSITIONS: Tuple[str, ...] = ("system", "suffix")
 
 
 def token_count_kind(model: str = "") -> str:
@@ -754,6 +787,49 @@ _QUERY_STOP_WORDS = frozenset({
 })
 
 
+# ── fact corrections (Phase KV CACHE 2, objective D) ────────────────────────
+# A correction is explicit in the text, or it is not treated as one. The memory
+# layer keeps no status for facts — ``facts`` is a flat list — so a superseded fact
+# cannot be recognised in general, and reclassifying one on a guess would break the
+# rule that an unparsed fact beats a misinterpreted one. This rule therefore needs
+# BOTH an explicit correction marker AND a "not <value>" / "instead of <value>"
+# pattern, and then only retires earlier facts that quote that value AND share
+# vocabulary with the correction. Anything else stays in the current state. The
+# durable fix is a status field on the memory layer's facts.
+_CORRECTION_MARKER_RE = re.compile(
+    r"\b(?:correction|corrected|rectification|actually|en fait|en réalité|"
+    r"no longer|n'est plus)\b", re.IGNORECASE)
+_SUPERSEDED_VALUE_RE = re.compile(
+    r"\b(?:not|instead of|au lieu de|et non)\s+"
+    r"([A-Za-z][\w.\-]*\d[\w.\-]*|[A-Z][A-Za-z]{2,})\b", re.IGNORECASE)
+
+
+def _content_words(text: str) -> set:
+    return {word.lower() for word in _WORD_TOKEN_RE.findall(text) if len(word) > 3}
+
+
+def _superseded_facts(facts: Sequence[str]) -> Dict[str, str]:
+    """Map each fact a correction retires to the correction that retires it."""
+    retired: Dict[str, str] = {}
+    for index, fact in enumerate(facts):
+        if not _CORRECTION_MARKER_RE.search(fact):
+            continue
+        match = _SUPERSEDED_VALUE_RE.search(fact)
+        if match is None:
+            continue
+        stale = match.group(1).lower()
+        correction_words = _content_words(fact)
+        for earlier in facts[:index]:
+            if earlier in retired or _CORRECTION_MARKER_RE.search(earlier):
+                continue
+            if stale not in earlier.lower():
+                continue
+            if len(correction_words & _content_words(earlier)) < 2:
+                continue
+            retired[earlier] = fact
+    return retired
+
+
 def build_context_block(
     memory: MemoryView,
     *,
@@ -762,6 +838,7 @@ def build_context_block(
     reconstruct: bool = True,
     max_tokens: int = 0,
     model: str = "",
+    conversation_id: str = "",
 ) -> Tuple[str, Dict[str, Any]]:
     """Build the context block under a token allowance. Returns ``(block, stats)``.
 
@@ -775,17 +852,19 @@ def build_context_block(
     allowance = max_tokens if max_tokens and max_tokens > 0 else 0
     omitted: Dict[str, int] = {}
 
-    def _fits(lines: List[str]) -> bool:
+    def _fits(lines: List[str], budget: int) -> bool:
         if not allowance:
             return True
-        return count_tokens("\n".join(lines), model) <= allowance
+        return count_tokens("\n".join(lines), model) <= budget
 
     if not reconstruct:
-        # Level D: a plain fact list, no current/history split, ranked by retrieval.
+        # Level D (legacy): a plain fact list, no current/history split, ranked by
+        # retrieval. Deliberately left unchanged — it is a measured variant of its
+        # own, not the reconstruction path Phase KV CACHE 2 changes.
         lines = [CONTEXT_BLOCK_HEADER]
         for fact in _ranked_facts(memory):
             candidate = lines + [f"- {_one_line(fact)}"]
-            if not _fits(candidate):
+            if not _fits(candidate, allowance):
                 omitted["facts"] = omitted.get("facts", 0) + 1
                 continue
             lines.append(f"- {_one_line(fact)}")
@@ -810,80 +889,223 @@ def build_context_block(
     history = [(v, st, i) for v, st, i in memory.decisions if st != "active"]
     unknown = detect_unknown_subjects(query, memory.source_text)
 
-    lines: List[str] = [CONTEXT_BLOCK_HEADER]
-
-    # 1. what is not known: cheapest entry and the one that prevents invention
+    # The "not known" guard is the one section that must never lose a space fight:
+    # it is what stops the model inventing an answer. It used to be emitted first
+    # for that reason. It now lives in the dynamic zone (last, so it cannot
+    # invalidate the prefix) with its cost RESERVED up front, so moving it does not
+    # weaken it: the guard always fits, whatever the allowance.
+    unknown_lines: List[str] = []
     if unknown:
-        lines.append("unknown:")
-        for token in unknown:
-            lines.append(f"- no information about {token} in this conversation")
+        unknown_lines.append("unknown:")
+        unknown_lines.extend(f"- no information about {token} in this conversation"
+                             for token in unknown)
+    history_lines: List[str] = []
+    if wants_history:
+        history_lines = ["history requested:",
+                         "- the question asks about an earlier state: read it from "
+                         "history:, never as current"]
+    highlight_lines: List[str] = []
+    # Under a tight allowance the dynamic zone must shrink WITH it, otherwise it
+    # becomes most of the block and its per-turn churn becomes most of the block's
+    # churn — measured on scenario H (800-token budget): 11 of 20 lines were dynamic
+    # and the block's reusable prefix was 289 c of 792 c (36 %). The counts are
+    # functions of the allowance alone, never of the question, so they cannot move the
+    # stable zone's truncation point.
+    highlight_keep = HIGHLIGHT_LIMIT
+    if allowance:
+        highlight_keep = max(1, min(highlight_keep, allowance // 500))
+    ranked = _ranked_facts(memory)
+    if ranked:
+        highlight_lines = ["highlights:"] + [
+            f"- {_one_line(fact)}" for fact in ranked[:highlight_keep]]
+    memo = memo_for(conversation_id)
+    # Facts a correction has retired leave the current state but stay traceable, in
+    # the historical zone, with their source and the correction that replaced them
+    # (objective D: never two contradictory facts presented as both current). The
+    # detection is the conservative, marker-based rule above — it abstains unless the
+    # text says "correction" and names the replaced value.
+    retired = _superseded_facts(list(memory.facts))
 
-    # 2. current state: the highest-value, smallest section. Always complete.
+    def _fact_line(fact: str) -> str:
+        # The citation is the fact's FIRST source, not its latest one: see
+        # BlockMemo.stable_flag (measured: 32 % → 86 % per-turn reusable prefix).
+        srcs = memo.stable_flag(fact, memory.sources.get(fact, ()))
+        # A fact a correction retired keeps its place and its source — it stays
+        # traceable — but it is marked, so two contradictory facts are never both
+        # presented as current (objective D). Marking in place rather than moving the
+        # fact to another section also keeps the change local to that one line: a
+        # separate section carried by the historical zone was measured to be starved
+        # by the allowance, leaving the retired fact in neither place.
+        marker = "(superseded) " if fact in retired else ""
+        return f"- {marker}{_one_line(fact)}" + (f" [{srcs}]" if srcs else "")
+
+    # The newest facts are volatile — a correction or an update lands at the end of
+    # the extraction order — so they are carried by the dynamic zone instead of the
+    # stable one. Measured (scenario E): with a prefix-only facts section the
+    # correction "atlas-2" fell outside the allowance while the superseded "atlas-1"
+    # stayed, which is exactly the silent contradiction objective D forbids.
+    recent_lines: List[str] = []
+    recent_keep = KEEP_RECENT_BY_LEVEL[level]
+    if allowance:
+        recent_keep = max(1, min(recent_keep, allowance // 300))
+    recent = list(memory.facts)[-recent_keep:]
+    if recent:
+        recent_lines = ["recent:"] + [_fact_line(fact) for fact in recent]
+    # The dynamic zone is reserved BEFORE the stable one is emitted, and the reserve
+    # is a FIXED token count. Both properties are load-bearing: the guard that stops
+    # the model inventing an answer, and the retrieval/recent signal that used to
+    # reorder the stable facts, must never be squeezed out by a stable zone that
+    # filled the allowance on its own. Sizing the reserve from the dynamic content
+    # instead was measured to re-break the prefix: every rewording of a dynamic line
+    # moved the stable zone's own truncation point (block LCP fell back to 31 %).
+    guard_budget = allowance
+    historical_budget = allowance
+    if allowance:
+        # Proportional as well as bounded: an absolute 400-token reserve swallows a
+        # small allowance whole, leaving the stable zone with almost nothing (measured
+        # on scenario H).
+        dynamic_reserve = min(DYNAMIC_RESERVE_TOKENS, allowance // 5)
+        historical_reserve = min(HISTORICAL_RESERVE_TOKENS, allowance // 5)
+        historical_budget = max(allowance - dynamic_reserve, 0)
+        guard_budget = max(historical_budget - historical_reserve, 0)
+
+    emitted: List[str] = [CONTEXT_BLOCK_HEADER]
+
+    def _take(candidates: Sequence[str], kind: str, budget: int) -> Tuple[str, ...]:
+        """The lines that fit; the rest are counted, never dropped silently."""
+        kept: List[str] = []
+        for line in candidates:
+            if not _fits(emitted + kept + [line], budget):
+                omitted[kind] = omitted.get(kind, 0) + 1
+                continue
+            kept.append(line)
+        return tuple(kept)
+
+    sections: List[Section] = []
+
+    def _add(name: str, zone: str, candidates: Sequence[str], kind: str,
+             budget: int) -> None:
+        """Render one named section into its zone, honouring the allowance."""
+        kept = _take(candidates, kind, budget)
+        # Every section is a header line plus entries. A header whose entries did not
+        # fit carries nothing, so it is not emitted: it would cost tokens and churn
+        # the prefix without informing anyone.
+        if kept and len(kept) > 1:
+            sections.append(Section(name=name, zone=zone, lines=kept))
+            emitted.extend(kept)
+
+    # ── zone 1/3: stable — fixed order, never reordered by the retriever ─────────
     if current:
-        lines.append("current decisions:")
+        candidates = ["current decisions:"]
         for value, status, did in current:
             srcs = memory.sources.get(f"decision:{did}", ())
-            lines.append(f"- {value} ({status}) [{'|'.join(srcs)}]" if srcs else f"- {value} ({status})")
+            candidates.append(f"- {value} ({status}) [{'|'.join(srcs)}]"
+                              if srcs else f"- {value} ({status})")
+        _add("current decisions", ZONE_STABLE, candidates, "decisions", guard_budget)
 
-    # 3. persistent constraints: one compact line each, kept ahead of the facts
     if memory.constraints:
-        lines.append("constraints:")
-        for constraint in memory.constraints:
-            lines.append(f"- {_one_line(constraint)}")
+        candidates = ["constraints:"] + [f"- {_one_line(constraint)}"
+                                        for constraint in memory.constraints]
+        _add("constraints", ZONE_STABLE, candidates, "constraints", guard_budget)
 
-    # 4. history only when the question asks for it
-    if history and wants_history:
-        lines.append("history:")
-        for value, status, _did in history:
-            lines.append(f"- {value} ({status}) -> replaced")
-
-    # 5. relations, then 6. facts: ranked by retrieval, truncated by the allowance
     if memory.relations:
-        lines.append("relations:")
-        for subject, predicate, obj in memory.relations:
-            candidate = lines + [f"- {subject} {predicate} {obj}"]
-            if not _fits(candidate):
-                omitted["relations"] = omitted.get("relations", 0) + 1
-                continue
-            lines.append(f"- {subject} {predicate} {obj}")
+        candidates = ["relations:"] + [f"- {subject} {predicate} {obj}"
+                                      for subject, predicate, obj in memory.relations]
+        _add("relations", ZONE_STABLE, candidates, "relations", guard_budget)
 
-    facts = _ranked_facts(memory)
-    if facts:
-        lines.append("facts:")
-        for fact in facts:
-            srcs = memory.sources.get(fact, ())
-            line = f"- {_one_line(fact)}" + (f" [{'|'.join(srcs)}]" if srcs else "")
-            if not _fits(lines + [line]):
-                omitted["facts"] = omitted.get("facts", 0) + 1
-                continue
-            lines.append(line)
+    # Facts are emitted in the memory layer's own order (extraction order), never in
+    # the retriever's ranking: measured in Phase KV CACHE 1, the ranking reordered
+    # this list *inside the prefix* and the reusable prefix fell to 0,4–4,5 % as soon
+    # as the question changed. Phase KV CACHE 2 measured that letting the ranking pick
+    # the survivors is no better — the kept set then depends on the question, so a
+    # one-line query change flipped which facts fitted (block LCP ~200 c). The list is
+    # therefore truncated as a PREFIX of the extraction order, which is stable under
+    # appends, and the ranking lands in the dynamic zone instead (see below).
+    facts = list(memory.facts)
+    # Identical facts arrive repeated (the FILLER turns say the same thing 30 times,
+    # each with its own message id). A repeated line carries no information the first
+    # copy did not, and it costs the allowance that a distinct fact needed: measured
+    # on the 100-turn fixture, 29 of 68 fact lines were byte-identical copies.
+    seen_facts = set()
+    unique_facts = [fact for fact in facts
+                    if not (fact in seen_facts or seen_facts.add(fact))]
+    if unique_facts:
+        _add("facts", ZONE_STABLE,
+             ["facts:"] + [_fact_line(fact) for fact in unique_facts],
+             "facts", guard_budget)
 
-    # 7. episodes last: the most expensive, the least specific
+    # ── zone 2/3: historical — superseded material, kept out of the current state ─
+    # Emitted whenever it exists, not only when the question asks for history: a
+    # section whose *presence* depends on the question changes the block structure
+    # and invalidates the prefix (measured: that flip alone collapsed the reusable
+    # prefix to 2,6 %). `wants_history` now feeds the dynamic zone only.
+    if history:
+        candidates = ["history:"] + [f"- {value} ({status}) -> replaced"
+                                    for value, status, _did in history]
+        _add("history", ZONE_HISTORICAL, candidates, "history", historical_budget)
+
     if memory.episodes and level != "minimal":
-        lines.append("episodes:")
-        budget_for_episodes = 3
-        for episode_id, summary in memory.episodes:
-            if budget_for_episodes <= 0:
-                omitted["episodes"] = omitted.get("episodes", 0) + 1
-                continue
-            line = f"- {_one_line(summary)} [{episode_id}]"
-            if not _fits(lines + [line]):
-                omitted["episodes"] = omitted.get("episodes", 0) + 1
-                continue
-            lines.append(line)
-            budget_for_episodes -= 1
+        capped = [f"- {_one_line(summary)} [{episode_id}]"
+                  for episode_id, summary in memory.episodes][:3]
+        omitted["episodes"] = len(memory.episodes) - len(capped)
+        _add("episodes", ZONE_HISTORICAL, ["episodes:"] + capped, "episodes",
+             historical_budget)
 
-    lines.append(CONTEXT_BLOCK_FOOTER)
-    return "\n".join(lines), {
+    # ── zone 3/3: dynamic — query-conditioned, last so per-turn change is a suffix ─
+    # The absence guard goes FIRST inside this zone: it is the one line that must
+    # survive every allowance, and the stable zone was sized to leave room for it.
+    if unknown_lines:
+        _add("unknown", ZONE_DYNAMIC, unknown_lines, "unknown", allowance)
+
+    if recent_lines:
+        _add("recent", ZONE_DYNAMIC, recent_lines, "recent", allowance)
+
+    if highlight_lines:
+        _add("highlights", ZONE_DYNAMIC, highlight_lines, "highlights", allowance)
+
+    if wants_history:
+        _add("history-requested", ZONE_DYNAMIC, history_lines, "history_requested",
+             allowance)
+
+    memo = memo_for(conversation_id)
+    by_zone, renders = render_zones(sections, memo)
+
+    def _assemble(zones: Sequence[str]) -> str:
+        parts: List[str] = [CONTEXT_BLOCK_HEADER]
+        for zone in zones:
+            parts.extend(by_zone[zone])
+        parts.append(CONTEXT_BLOCK_FOOTER)
+        return "\n".join(parts)
+
+    block = _assemble(ZONE_ORDER)
+    block_stable = _assemble((ZONE_STABLE, ZONE_HISTORICAL))
+    block_dynamic = _assemble((ZONE_DYNAMIC,)) if by_zone[ZONE_DYNAMIC] else ""
+
+    return block, {
         "reconstruct": True,
         "allowance_tokens": allowance,
         "unknown_subjects": list(unknown),
         "current_decisions": len(current),
         "history_decisions": len(history),
-        "history_shown": bool(history and wants_history),
+        "history_shown": bool(history),
+        "history_requested": bool(wants_history),
         "constraints": len(memory.constraints),
         "facts": len(facts),
         "omitted": omitted,
+        # ── Phase KV CACHE 2: zones, fingerprints, memoisation ──────────────────
+        "zones": {zone: len(by_zone[zone]) for zone in ZONE_ORDER},
+        "zone_chars": {zone: len("\n".join(by_zone[zone])) for zone in ZONE_ORDER},
+        "sections": [render.to_dict() for render in renders],
+        "section_fingerprints": {render.name: render.fingerprint[:12] for render in renders},
+        # Deliberately NOT reported here: how many sections the memo reused. That
+        # number depends on what was rendered before, so putting it in the output
+        # broke the pipeline's byte-identical-across-runs contract (measured: 7
+        # fixtures). Reuse is observable from the fingerprints above — diff them
+        # between two turns — or from ``rendering.memo_for(conversation_id).stats()``.
+        # Popped by the caller before the stage report is serialised: the block text
+        # itself is already carried by ``context_block``.
+        "block_stable": block_stable,
+        "block_dynamic": block_dynamic,
     }
 
 
@@ -923,12 +1145,16 @@ _TAIL_WORD_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_]{1,})\s*[.…]?\s*$")
 STRUCTURAL_LINES = (
     CONTEXT_BLOCK_HEADER, CONTEXT_BLOCK_FOOTER, "[DEVELOPER]", "[/DEVELOPER]",
     "unknown:", "current decisions:", "constraints:", "history:", "relations:",
-    "facts:", "episodes:", "reasons:",
+    "facts:", "episodes:", "reasons:", "history requested:", "recent:", "highlights:",
 )
-# Lines the reconstructor writes itself (absence notices, omission counters).
-# They carry no source words, so the source-grounded repair must leave them alone.
+# Lines the reconstructor writes itself (absence notices, omission counters, the
+# history-request hint). They carry no source words, so the source-grounded repair
+# must leave them alone. Measured in Phase KV CACHE 2: without this protection the
+# repair ate both ends of the hint (" requested:" / "never as ") and the trailing word
+# of every history line ("- PostgreSQL (superseded) -> replaced" printed as "-> ").
 _GENERATED_LINE_RE = re.compile(
-    r"^-\s*(?:no information about\b|\(omitted\b|omitted[: ])", re.IGNORECASE)
+    r"^-\s*(?:no information about\b|\(omitted\b|omitted[: ]|\(superseded\)"
+    r"|\S+\s+\(superseded\)|the question asks about\b)", re.IGNORECASE)
 
 
 def _repair_partial_words(text: str, source: str, *, protect: Sequence[str] = STRUCTURAL_LINES) -> str:
@@ -1188,12 +1414,15 @@ class PipelineConfig:
     compress_outputs: bool = True
     dedupe: bool = True
     validate: bool = True
+    block_position: str = "system"
 
     def __post_init__(self) -> None:
         if self.level not in BUDGET_LEVELS:
             raise ValueError(f"level must be one of {sorted(BUDGET_LEVELS)}")
         if self.max_tokens <= 0:
             raise ValueError("max_tokens must be > 0")
+        if self.block_position not in BLOCK_POSITIONS:
+            raise ValueError(f"block_position must be one of {sorted(BLOCK_POSITIONS)}")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -1201,6 +1430,7 @@ class PipelineConfig:
             "conversation_id": self.conversation_id, "use_memory": self.use_memory,
             "reconstruct": self.reconstruct, "compress_outputs": self.compress_outputs,
             "dedupe": self.dedupe, "validate": self.validate,
+            "block_position": self.block_position,
         }
 
 
@@ -1423,23 +1653,42 @@ def run_deterministic_pipeline(
     memory_allowance = int(cfg.max_tokens * BUDGET_LEVELS[cfg.level])
     context_block = ""
     block_stats: Dict[str, Any] = {}
+    block_stable = ""
+    block_dynamic = ""
     if cfg.use_memory and (memory.facts or memory.decisions or memory.episodes or memory.relations):
         context_block, block_stats = build_context_block(
             memory, query=query or "", level=cfg.level, reconstruct=cfg.reconstruct,
             max_tokens=memory_allowance, model=cfg.model,
+            conversation_id=cfg.conversation_id or "",
         )
+        # The zone texts are for assembly, not for the report: pop them out of the
+        # stats that get serialised so a stage dump never carries a second copy of
+        # the block. Counts and fingerprints stay in.
+        block_stable = str(block_stats.pop("block_stable", ""))
+        block_dynamic = str(block_stats.pop("block_dynamic", ""))
         context_block = _repair_partial_words(context_block, memory.source_text or context_block)
+        block_stable = _repair_partial_words(block_stable, memory.source_text or block_stable)
+        block_dynamic = _repair_partial_words(block_dynamic, memory.source_text or block_dynamic)
 
     # The system prompt is the STABLE prefix (KV-cache friendliness, Phase 2.4
-    # §10): instructions first, then the volatile context block. The block is
-    # never injected as a fake "user" message.
+    # §10): instructions first, then the context block. The block is never injected
+    # as a fake "user" message.
+    #
+    # Phase KV CACHE 2 / objective E: with block_position="suffix", only the stable
+    # and historical zones stay in the prefix; the dynamic zone — the part that
+    # changes with the question — is appended AFTER the conversation instead.
+    system_block = context_block
+    dynamic_message = ""
+    if context_block and cfg.block_position == "suffix":
+        system_block = block_stable or context_block
+        dynamic_message = block_dynamic
     system_sections: List[str] = []
     if analysis.system_text:
         system_sections.append(analysis.system_text)
     if analysis.developer_text:
         system_sections.append(f"[DEVELOPER]\n{analysis.developer_text}\n[/DEVELOPER]")
-    if context_block:
-        system_sections.append(context_block)
+    if system_block:
+        system_sections.append(system_block)
     final_system = "\n\n".join(system_sections)
 
     # The context block SUBSTITUTES for the older turns: keeping both the block
@@ -1456,13 +1705,17 @@ def run_deterministic_pipeline(
         {"role": m["role"], "content": m["content"]}
         for m in compressed_turns if m["mid"] in verbatim_mids
     ]
+    if dynamic_message:
+        # Appended AFTER the conversation: the system prompt above stays a
+        # byte-stable prefix, and the query-conditioned zone travels with the turn.
+        final_messages = final_messages + [{"role": "system", "content": dynamic_message}]
     represented = [m["mid"] for m in compressed_turns if m["mid"] not in verbatim_mids]
 
     def _count(system_text: str, msgs: List[Dict[str, Any]]) -> int:
         head = [{"role": "system", "content": system_text}] if system_text else []
         return estimate_messages_tokens(head + msgs, cfg.model)
 
-    core_sections = [s for s in system_sections if s != context_block]
+    core_sections = [s for s in system_sections if s != system_block]
     core_system = "\n\n".join(core_sections)
     all_verbatim = [{"role": m["role"], "content": m["content"]} for m in compressed_turns]
 
@@ -1534,7 +1787,8 @@ def run_deterministic_pipeline(
         "represented_in_memory": len(represented),
         "roles": {r: sum(1 for m in final_messages if m["role"] == r)
                   for r in sorted({m["role"] for m in final_messages})},
-        "system_role_messages": 0,      # the block is part of the system prompt
+        "block_position": cfg.block_position,
+        "system_role_messages": 1 if dynamic_message else 0,
         "tokens_after_%s" % kind: tokens_after,
         "within_budget": not over_budget,
     }))
