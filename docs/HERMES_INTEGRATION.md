@@ -57,6 +57,40 @@ hermes plugins enable boster
 3. Une session Hermes **déjà ouverte** garde son ancien jeu de plugins jusqu'au
    `/reset` ou redémarrage de l'app.
 
+### Vérif ciblée de `transform_tool_result`
+
+Le hook ne se déclenche **que** si le résultat d'un outil est une **string
+plate** (⩾ `BOSTER_MIN_CHARS`, gain ⩾ `BOSTER_MIN_SAVE` après `safe_compress`).
+Or les résultats renvoyés par la plupart des outils Hermes sont des **dicts
+JSON** (`terminal`, `read_file`, `search_files`…) → le handler sort immédiatement
+(`isinstance(result, str)` faux) et **rien n'est loggé** : c'est un
+comportement attendu, pas un bug de chargement.
+
+Preuve de chargement : le hook `transform_terminal_output` logge déjà en session
+(`kind: "terminal"`), et `register()` enregistre **les deux hooks
+inconditionnellement** — donc si terminal tire, `transform_tool_result` est actif.
+
+Preuve de la branche `tool_result` (bout en bout, sans dépendre d'un outil à
+string plate) :
+
+```bash
+cd "$LOCALAPPDATA/hermes/hermes-agent" && \
+PYTHONPATH="$LOCALAPPDATA/hermes/hermes-agent" \
+BOSTER_PATH="C:/Users/celes/Documents/Hermes-Workspace/Boster" \
+python3 -c "
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('boster_plugin',
+  r'C:\Users\celes\AppData\Local\hermes\profiles\def\plugins\boster\__init__.py')
+m = importlib.util.module_from_spec(spec); sys.modules['bp'] = m; spec.loader.exec_module(m)
+big = '\n'.join('\x1b[32m[OK]\x1b[0m module_%03d %s\n\n\n' % (i, 'y'*40) for i in range(80))
+m._on_transform_tool_result(tool_name='test_ansi', result=big)
+"; tail -1 "$HERMES_HOME/logs/boster_savings.jsonl"   # kind: "tool_result"
+```
+
+Un `"kind":"tool_result"` en queue prouve le chemin complet (compress + write).
+Nécessite `hermes_constants` importable → runner depuis le dossier du repo
+hermes-agent, sinon `_log()` échoue en silence.
+
 ## Variables
 | Env var | Par défaut | Rôle |
 |---|---|---|
