@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "conversation_id": "adversarial",
+  "generation": 1,
+  "model": "",
+  "budget": {
+    "total": 0,
+    "reserve_query": 512,
+    "reserve_answer": 512,
+    "safety": 256,
+    "warn_ratio": 0.75,
+    "consolidate_ratio": 0.9,
+    "allow_auto_consolidate": false,
+    "capacity": 0
+  },
+  "prefix_lines": [
+    "instructions:",
+    "- rule",
+    "reference:",
+    "- Project"
+  ],
+  "prefix_frozen": true,
+  "journal": [
+    {
+      "entry_id": "F001",
+      "kind": "fact",
+      "content": "store = one",
+      "source_ids": [
+        "m1"
+      ],
+      "created_at": null,
+      "supersedes": null,
+      "status": "active",
+      "confidence": null,
+      "subject": "store",
+      "generation": 1,
+      "seq": 1
+    },
+    {
+      "entry_id": "C001",
+      "kind": "correction",
+      "content": "store = two",
+      "source_ids": [
+        "m2"
+      ],
+      "created_at": null,
+      "supersedes": "F001",
+      "status": "active",
+      "confidence": null,
+      "subject": "store",
+      "generation": 1,
+      "seq": 2
+    },
+    {
+      "entry_id": "C002",
+      "kind": "correction",
+      "content": "store = three",
+      "source_ids": [
+        "m3"
+      ],
+      "created_at": null,
+      "supersedes": "C001",
+      "status": "active",
+      "confidence": null,
+      "subject": "store",
+      "generation": 1,
+      "seq": 3
+    },
+    {
+      "entry_id": "F002",
+      "kind": "fact",
+      "content": "store = three",
+      "source_ids": [],
+      "created_at": null,
+      "supersedes": null,
+      "status": "active",
+      "confidence": null,
+      "subject": "store",
+      "generation": 1,
+      "seq": 4
+    },
+    {
+      "entry_id": "F003",
+      "kind": "fact",
+      "content": "undated and unsourced",
+      "source_ids": [],
+      "created_at": null,
+      "supersedes": null,
+      "status": "active",
+      "confidence": null,
+      "subject": null,
+      "generation": 1,
+      "seq": 5
+    },
+    {
+      "entry_id": "F004",
+      "kind": "fact",
+      "content": "mémoire bornée — ✨",
+      "source_ids": [
+        "m7"
+      ],
+      "created_at": null,
+      "supersedes": null,
+      "status": "active",
+      "confidence": null,
+      "subject": null,
+      "generation": 1,
+      "seq": 6
+    },
+    {
+      "entry_id": "O001",
+      "kind": "obsolete",
+      "content": "cache = none",
+      "source_ids": [
+        "m8"
+      ],
+      "created_at": null,
+      "supersedes": null,
+      "status": "obsolete",
+      "confidence": null,
+      "subject": null,
+      "generation": 1,
+      "seq": 7
+    }
+  ],
+  "archived": [],
+  "consolidations": [],
+  "frozen": {
+    "F001": "F001 [fact] store = one [src:m1]",
+    "C001": "C001 [correction] store = two [src:m2] (supersedes F001)",
+    "C002": "C002 [correction] store = three [src:m3] (supersedes C001)",
+    "F002": "F002 [fact] store = three",
+    "F003": "F003 [fact] undated and unsourced",
+    "F004": "F004 [fact] mémoire bornée — ✨ [src:m7]",
+    "O001": "O001 [obsolete] cache = none [src:m8]"
+  },
+  "counters": {
+    "F": 4,
+    "C": 2,
+    "O": 1
+  },
+  "seq": 7,
+  "saved_at": 1700000000
+}

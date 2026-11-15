@@ -1,0 +1,63 @@
+{
+  "engine": "llamacpp",
+  "mode": "sequence",
+  "exchanges": 3,
+  "scenario": "B",
+  "append_budget_total": 0,
+  "cache_reset": true,
+  "engine_report": {
+    "name": "llama.cpp (llama-server)",
+    "base_url": "http://127.0.0.1:1235",
+    "reachable": true,
+    "model": "C:/Users/celes/.lmstudio/models/chaoliangUNSW/Jev-Style-0.8B-Decision-v3-GGUF/Jev-Style-0.8B-Decision-v3-F16.gguf",
+    "version": null,
+    "quant": null,
+    "context_length": 16384,
+    "exposes_cache_counter": true,
+    "cache_counter_fields": [
+      "timings.cache_n",
+      "tokens_cached",
+      "metrics:llamacpp:prompt_tokens_cached_total"
+    ],
+    "timing_fields": [
+      "timings.prompt_ms",
+      "timings.prompt_per_token_ms",
+      "timings.prompt_per_second",
+      "timings.predicted_ms"
+    ],
+    "metrics_series": [
+      "llamacpp:n_busy_slots_per_decode",
+      "llamacpp:n_decode_total",
+      "llamacpp:n_tokens_max",
+      "llamacpp:predicted_tokens_seconds",
+      "llamacpp:prompt_seconds_total",
+      "llamacpp:prompt_tokens_cached_total",
+      "llamacpp:prompt_tokens_seconds",
+      "llamacpp:prompt_tokens_total",
+      "llamacpp:requests_deferred",
+      "llamacpp:requests_processing",
+      "llamacpp:spec_decode_num_accepted_tokens_total",
+      "llamacpp:spec_decode_num_draft_tokens_total",
+      "llamacpp:spec_decode_num_drafts_total",
+      "llamacpp:tokens_predicted_seconds_total",
+      "llamacpp:tokens_predicted_total"
+    ],
+    "unavailable": [
+      "tokens reutilises par requete UNIQUEMENT si timings.cache_n est present"
+    ],
+    "notes": [
+      "params par defaut: {\"seed\": 4294967295, \"temperature\": 0.800000011920929, \"dynatemp_range\": 0.0, \"dynatemp_exponent\": 1.0, \"top_k\": 40, \"top_p\": 0.949999988079071, \"min_p\": 0.05000000074505806, \"top_n_sigma\": -1.0, \"xtc_probability\": 0.0, \"xtc_threshold\": 0.10000000149011612, \"typical_p\": 1.0, \"repeat_last_n\": 64, \"repeat_penalty\": 1.0, \"presence_penalty\": 0.0, \"frequency_penalty\": 0.0, \"dry_multiplier\": 0.0, \"dry_b"
+    ]
+  },
+  "configs": {
+    "boster_append": {
+      "records": 3,
+      "file": "smoke4_sequence_boster_append.jsonl",
+      "engine_metrics_delta": {
+        "prompt_tokens_total": 0.0,
+        "prompt_tokens_cached_total": 0.0
+      },
+      "bytes_first_turn_cached": 0
+    }
+  }
+}

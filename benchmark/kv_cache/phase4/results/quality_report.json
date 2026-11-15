@@ -1,0 +1,166 @@
+{
+  "boster_append": {
+    "retention": [
+      {
+        "item": "instructions systeme",
+        "verdict": "EXACT",
+        "detail": "careful engineering assistant"
+      },
+      {
+        "item": "contrainte durable",
+        "verdict": "EXACT",
+        "detail": "4 gb"
+      },
+      {
+        "item": "valeur de stockage courante",
+        "verdict": "EXACT",
+        "detail": "postgresql"
+      },
+      {
+        "item": "valeur de stockage remplacee",
+        "verdict": "EXACT",
+        "detail": "sqlite"
+      },
+      {
+        "item": "relation reporting",
+        "verdict": "EXACT",
+        "detail": "reporting service"
+      },
+      {
+        "item": "hote de staging",
+        "verdict": "EXACT",
+        "detail": "atlas-1"
+      },
+      {
+        "item": "provenance",
+        "verdict": "EXACT",
+        "detail": "src:"
+      }
+    ],
+    "invariants": [
+      {
+        "item": "lignes gelees inchangees",
+        "verdict": "EXACT",
+        "detail": ""
+      },
+      {
+        "item": "aucun fait invente",
+        "verdict": "EXACT",
+        "detail": ""
+      },
+      {
+        "item": "tracabilite des entrees",
+        "verdict": "EXACT",
+        "detail": ""
+      },
+      {
+        "item": "references de correction resolues",
+        "verdict": "EXACT",
+        "detail": ""
+      },
+      {
+        "item": "distinction actuel / obsolete",
+        "verdict": "SEMANTIC",
+        "detail": "2 valeur(s) courante(s), 1 renversee(s)"
+      },
+      {
+        "item": "historique conserve apres consolidation",
+        "verdict": "EXACT",
+        "detail": "0 entree(s) archivee(s), 113 vivante(s)"
+      }
+    ],
+    "stability_violations": 0,
+    "current_state": {
+      "storage": [
+        "PostgreSQL",
+        "D001"
+      ],
+      "cache": [
+        "Redis",
+        "D002"
+      ]
+    },
+    "entries": 113
+  },
+  "raw": {
+    "retention": [
+      {
+        "item": "instructions systeme",
+        "verdict": "EXACT",
+        "detail": "careful engineering assistant"
+      },
+      {
+        "item": "contrainte durable",
+        "verdict": "EXACT",
+        "detail": "4 gb"
+      },
+      {
+        "item": "valeur de stockage courante",
+        "verdict": "EXACT",
+        "detail": "postgresql"
+      },
+      {
+        "item": "valeur de stockage remplacee",
+        "verdict": "EXACT",
+        "detail": "sqlite"
+      },
+      {
+        "item": "relation reporting",
+        "verdict": "EXACT",
+        "detail": "reporting service"
+      },
+      {
+        "item": "hote de staging",
+        "verdict": "EXACT",
+        "detail": "atlas-1"
+      },
+      {
+        "item": "provenance",
+        "verdict": "LOST",
+        "detail": "src:"
+      }
+    ]
+  },
+  "adversarial": [
+    {
+      "item": "chaine de corrections",
+      "verdict": "EXACT",
+      "detail": "2 renversements en chaine"
+    },
+    {
+      "item": "doublon non reajoute",
+      "verdict": "LOST",
+      "detail": "4 entrees"
+    },
+    {
+      "item": "date absente jamais inventee",
+      "verdict": "EXACT",
+      "detail": "F003 [fact] undated and unsourced"
+    },
+    {
+      "item": "unicode intact",
+      "verdict": "EXACT",
+      "detail": ""
+    },
+    {
+      "item": "obsolete sans reference accepte",
+      "verdict": "EXACT",
+      "detail": ""
+    },
+    {
+      "item": "persistance disque identique",
+      "verdict": "EXACT",
+      "detail": ""
+    },
+    {
+      "item": "consolidation conserve tout",
+      "verdict": "EXACT",
+      "detail": "7 archivees, 0 perdues"
+    },
+    {
+      "item": "consolidation n'a rien detruit",
+      "verdict": "EXACT",
+      "detail": ""
+    }
+  ]
+}
