@@ -1,0 +1,899 @@
+{
+  "fact_short": {
+    "size": "short",
+    "exchange_count": 10,
+    "original_tokens": 177,
+    "selected_tokens": 36,
+    "reduction_pct": 79.66101694915254,
+    "processing_time_ms": 0.05850000161444768,
+    "fact_retention": {
+      "rate": 0.8333333333333334,
+      "retained": 5,
+      "total": 6,
+      "missing_ids": [
+        "f4"
+      ]
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 3
+    },
+    "decision_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 2
+    },
+    "constraint_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 1
+    },
+    "temporal_accuracy": {
+      "rate": 1.0,
+      "correct": 0,
+      "total": 0,
+      "superseded_count": 0
+    },
+    "contradiction_preservation": {
+      "rate": 1.0,
+      "preserved": 0,
+      "total": 0
+    },
+    "long_range_recall": {
+      "rate": 0.8333333333333334,
+      "retained": 5,
+      "total": 6
+    }
+  },
+  "fact_medium": {
+    "size": "medium",
+    "exchange_count": 21,
+    "original_tokens": 267,
+    "selected_tokens": 32,
+    "reduction_pct": 88.01498127340824,
+    "processing_time_ms": 0.05079999755253084,
+    "fact_retention": {
+      "rate": 0.3333333333333333,
+      "retained": 4,
+      "total": 12,
+      "missing_ids": [
+        "f4",
+        "f6",
+        "f7",
+        "f8",
+        "f9",
+        "f10",
+        "f11",
+        "f12"
+      ]
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 5
+    },
+    "decision_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 4
+    },
+    "constraint_retention": {
+      "rate": 0.3333333333333333,
+      "retained": 1,
+      "total": 3
+    },
+    "temporal_accuracy": {
+      "rate": 1.0,
+      "correct": 0,
+      "total": 0
+    },
+    "contradiction_preservation": {
+      "rate": 1.0,
+      "preserved": 0,
+      "total": 0
+    },
+    "long_range_recall": {
+      "rate": 0.8,
+      "retained": 4,
+      "total": 12
+    }
+  },
+  "fact_long": {
+    "size": "long",
+    "exchange_count": 54,
+    "original_tokens": 799,
+    "selected_tokens": 34,
+    "reduction_pct": 95.74468085106383,
+    "processing_time_ms": 0.04489999992074445,
+    "fact_retention": {
+      "rate": 0.2222222222222222,
+      "retained": 4,
+      "total": 18,
+      "missing_ids": [
+        "f4",
+        "f6",
+        "f7",
+        "f8",
+        "f9",
+        "f10",
+        "f11",
+        "f12",
+        "f13",
+        "f14",
+        "f15",
+        "f16",
+        "f17",
+        "f18"
+      ]
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 3
+    },
+    "decision_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 5
+    },
+    "constraint_retention": {
+      "rate": 1.0,
+      "retained": 0,
+      "total": 0
+    },
+    "temporal_accuracy": {
+      "rate": 0.0,
+      "correct": 0,
+      "total": 4,
+      "superseded_count": 3
+    },
+    "contradiction_preservation": {
+      "rate": 0.0,
+      "preserved": 0,
+      "total": 4
+    },
+    "long_range_recall": {
+      "rate": 0.8,
+      "retained": 4,
+      "total": 18
+    }
+  },
+  "fact_very_long": {
+    "size": "very_long",
+    "exchange_count": 86,
+    "original_tokens": 1346,
+    "selected_tokens": 38,
+    "reduction_pct": 97.17682020802377,
+    "processing_time_ms": 0.060599999414989725,
+    "fact_retention": {
+      "rate": 0.1875,
+      "retained": 3,
+      "total": 16,
+      "missing_ids": [
+        "f3",
+        "f4",
+        "f5",
+        "f6",
+        "f7",
+        "f8",
+        "f9",
+        "f10",
+        "f11",
+        "f12",
+        "f14",
+        "f15",
+        "f16"
+      ]
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 6
+    },
+    "decision_retention": {
+      "rate": 1.0,
+      "retained": 0,
+      "total": 0
+    },
+    "constraint_retention": {
+      "rate": 1.0,
+      "retained": 0,
+      "total": 0
+    },
+    "temporal_accuracy": {
+      "rate": 0.0,
+      "correct": 0,
+      "total": 2,
+      "superseded_count": 1
+    },
+    "contradiction_preservation": {
+      "rate": 0.0,
+      "preserved": 0,
+      "total": 1
+    },
+    "long_range_recall": {
+      "rate": 0.6666666666666666,
+      "retained": 2,
+      "total": 16
+    }
+  },
+  "rel_short": {
+    "size": "short",
+    "original_tokens": 177,
+    "selected_tokens": 36,
+    "reduction_pct": 79.66101694915254,
+    "processing_time_ms": 0.046799999836366624,
+    "relationship_retention_rate": 0.0,
+    "relationships_retained": 0,
+    "relationships_total": 3,
+    "selected_message_count": 1
+  },
+  "rel_medium": {
+    "size": "medium",
+    "original_tokens": 267,
+    "selected_tokens": 32,
+    "reduction_pct": 88.01498127340824,
+    "processing_time_ms": 0.03130000186502002,
+    "relationship_retention_rate": 0.0,
+    "relationships_retained": 0,
+    "relationships_total": 5,
+    "selected_message_count": 1
+  },
+  "rel_long": {
+    "size": "long",
+    "original_tokens": 799,
+    "selected_tokens": 34,
+    "reduction_pct": 95.74468085106383,
+    "processing_time_ms": 0.044299998990027234,
+    "relationship_retention_rate": 0.0,
+    "relationships_retained": 0,
+    "relationships_total": 3,
+    "selected_message_count": 1
+  },
+  "rel_very_long": {
+    "size": "very_long",
+    "original_tokens": 1346,
+    "selected_tokens": 38,
+    "reduction_pct": 97.17682020802377,
+    "processing_time_ms": 0.053499999921768904,
+    "relationship_retention_rate": 0.0,
+    "relationships_retained": 0,
+    "relationships_total": 6,
+    "selected_message_count": 1
+  },
+  "rel_multi_project": {
+    "size": "multi_project",
+    "original_tokens": 288,
+    "selected_tokens": 39,
+    "reduction_pct": 86.45833333333334,
+    "processing_time_ms": 0.029499999072868377,
+    "relationship_retention_rate": 0.0,
+    "relationships_retained": 0,
+    "relationships_total": 6,
+    "selected_message_count": 1
+  },
+  "lr_short_name_language": {
+    "size": "short",
+    "query": "What is the project name and what language is it written in?",
+    "original_tokens": 177,
+    "selected_tokens": 36,
+    "reduction_pct": 79.66101694915254,
+    "processing_time_ms": 0.05850000161444768,
+    "long_range_facts_total": 6,
+    "long_range_facts_retained": 5,
+    "long_range_recall_rate": 0.8333333333333334,
+    "missing_facts": [
+      "f4: Alex is the lead developer"
+    ]
+  },
+  "lr_short_people": {
+    "size": "short",
+    "query": "Who is involved in the project?",
+    "original_tokens": 177,
+    "selected_tokens": 36,
+    "reduction_pct": 79.66101694915254,
+    "processing_time_ms": 0.028800001018680632,
+    "long_range_facts_total": 6,
+    "long_range_facts_retained": 5,
+    "long_range_recall_rate": 0.8333333333333334,
+    "missing_facts": [
+      "f4: Alex is the lead developer"
+    ]
+  },
+  "lr_short_technologies": {
+    "size": "short",
+    "query": "What technologies are used?",
+    "original_tokens": 177,
+    "selected_tokens": 36,
+    "reduction_pct": 79.66101694915254,
+    "processing_time_ms": 0.04489999992074445,
+    "long_range_facts_total": 6,
+    "long_range_facts_retained": 5,
+    "long_range_recall_rate": 0.8333333333333334,
+    "missing_facts": [
+      "f4: Alex is the lead developer"
+    ]
+  },
+  "lr_medium_name_language": {
+    "size": "medium",
+    "query": "What is the project name and what language is it written in?",
+    "original_tokens": 267,
+    "selected_tokens": 32,
+    "reduction_pct": 88.01498127340824,
+    "processing_time_ms": 0.030699997296324,
+    "long_range_facts_total": 12,
+    "long_range_facts_retained": 4,
+    "long_range_recall_rate": 0.3333333333333333,
+    "missing_facts": [
+      "f4: Alex is lead developer",
+      "f6: MIT license",
+      "f7: Terminal UI (not web)",
+      "f8: Cross-platform: Win/macOS/Linux",
+      "f9: Plugin system required",
+      "f10: 3-month deadline",
+      "f11: pytest for testing",
+      "f12: Repository pattern for data layer"
+    ]
+  },
+  "lr_medium_people": {
+    "size": "medium",
+    "query": "Who is involved in the project?",
+    "original_tokens": 267,
+    "selected_tokens": 32,
+    "reduction_pct": 88.01498127340824,
+    "processing_time_ms": 0.031100000342121348,
+    "long_range_facts_total": 12,
+    "long_range_facts_retained": 4,
+    "long_range_recall_rate": 0.3333333333333333,
+    "missing_facts": [
+      "f4: Alex is lead developer",
+      "f6: MIT license",
+      "f7: Terminal UI (not web)",
+      "f8: Cross-platform: Win/macOS/Linux",
+      "f9: Plugin system required",
+      "f10: 3-month deadline",
+      "f11: pytest for testing",
+      "f12: Repository pattern for data layer"
+    ]
+  },
+  "lr_medium_technologies": {
+    "size": "medium",
+    "query": "What technologies are used?",
+    "original_tokens": 267,
+    "selected_tokens": 32,
+    "reduction_pct": 88.01498127340824,
+    "processing_time_ms": 0.029099999665049836,
+    "long_range_facts_total": 12,
+    "long_range_facts_retained": 4,
+    "long_range_recall_rate": 0.3333333333333333,
+    "missing_facts": [
+      "f4: Alex is lead developer",
+      "f6: MIT license",
+      "f7: Terminal UI (not web)",
+      "f8: Cross-platform: Win/macOS/Linux",
+      "f9: Plugin system required",
+      "f10: 3-month deadline",
+      "f11: pytest for testing",
+      "f12: Repository pattern for data layer"
+    ]
+  },
+  "lr_long_name_language": {
+    "size": "long",
+    "query": "What is the project name and what language is it written in?",
+    "original_tokens": 799,
+    "selected_tokens": 34,
+    "reduction_pct": 95.74468085106383,
+    "processing_time_ms": 0.042100000428035855,
+    "long_range_facts_total": 18,
+    "long_range_facts_retained": 4,
+    "long_range_recall_rate": 0.2222222222222222,
+    "missing_facts": [
+      "f4: Alex is lead developer",
+      "f6: MIT license",
+      "f7: Web dashboard UI (changed from terminal)",
+      "f8: Plugin system required",
+      "f9: 4-month deadline (updated from 3)",
+      "f10: pytest for testing",
+      "f11: Repository pattern",
+      "f12: REST API (changed from GraphQL)",
+      "f13: CI/CD with GitHub Actions",
+      "f14: Markdown documentation",
+      "f15: YAML configuration",
+      "f16: Docker containerization",
+      "f17: JSON structured logging",
+      "f18: Multi-environment config (dev/staging/prod)"
+    ]
+  },
+  "lr_long_people": {
+    "size": "long",
+    "query": "Who is involved in the project?",
+    "original_tokens": 799,
+    "selected_tokens": 34,
+    "reduction_pct": 95.74468085106383,
+    "processing_time_ms": 0.0413999987358693,
+    "long_range_facts_total": 18,
+    "long_range_facts_retained": 4,
+    "long_range_recall_rate": 0.2222222222222222,
+    "missing_facts": [
+      "f4: Alex is lead developer",
+      "f6: MIT license",
+      "f7: Web dashboard UI (changed from terminal)",
+      "f8: Plugin system required",
+      "f9: 4-month deadline (updated from 3)",
+      "f10: pytest for testing",
+      "f11: Repository pattern",
+      "f12: REST API (changed from GraphQL)",
+      "f13: CI/CD with GitHub Actions",
+      "f14: Markdown documentation",
+      "f15: YAML configuration",
+      "f16: Docker containerization",
+      "f17: JSON structured logging",
+      "f18: Multi-environment config (dev/staging/prod)"
+    ]
+  },
+  "lr_long_technologies": {
+    "size": "long",
+    "query": "What technologies are used?",
+    "original_tokens": 799,
+    "selected_tokens": 34,
+    "reduction_pct": 95.74468085106383,
+    "processing_time_ms": 0.04020000051241368,
+    "long_range_facts_total": 18,
+    "long_range_facts_retained": 4,
+    "long_range_recall_rate": 0.2222222222222222,
+    "missing_facts": [
+      "f4: Alex is lead developer",
+      "f6: MIT license",
+      "f7: Web dashboard UI (changed from terminal)",
+      "f8: Plugin system required",
+      "f9: 4-month deadline (updated from 3)",
+      "f10: pytest for testing",
+      "f11: Repository pattern",
+      "f12: REST API (changed from GraphQL)",
+      "f13: CI/CD with GitHub Actions",
+      "f14: Markdown documentation",
+      "f15: YAML configuration",
+      "f16: Docker containerization",
+      "f17: JSON structured logging",
+      "f18: Multi-environment config (dev/staging/prod)"
+    ]
+  },
+  "lr_very_long_name_language": {
+    "size": "very_long",
+    "query": "What is the project name and what language is it written in?",
+    "original_tokens": 1346,
+    "selected_tokens": 38,
+    "reduction_pct": 97.17682020802377,
+    "processing_time_ms": 0.07279999772435986,
+    "long_range_facts_total": 16,
+    "long_range_facts_retained": 3,
+    "long_range_recall_rate": 0.1875,
+    "missing_facts": [
+      "f3: Jordan is the architect",
+      "f4: Taylor is the lead developer",
+      "f5: Zero-downtime deployments required",
+      "f6: gRPC for inter-service communication (confirmed)",
+      "f7: PostgreSQL with ACID compliance",
+      "f8: Redis for caching and message queuing",
+      "f9: Kubernetes orchestration",
+      "f10: Apache Kafka for event streaming",
+      "f11: 6-month deadline",
+      "f12: MIT license",
+      "f14: Multi-tenancy support",
+      "f15: Per-tenant rate limiting",
+      "f16: Schema-per-tenant data isolation"
+    ]
+  },
+  "lr_very_long_people": {
+    "size": "very_long",
+    "query": "Who is involved in the project?",
+    "original_tokens": 1346,
+    "selected_tokens": 38,
+    "reduction_pct": 97.17682020802377,
+    "processing_time_ms": 0.05549999696086161,
+    "long_range_facts_total": 16,
+    "long_range_facts_retained": 3,
+    "long_range_recall_rate": 0.1875,
+    "missing_facts": [
+      "f3: Jordan is the architect",
+      "f4: Taylor is the lead developer",
+      "f5: Zero-downtime deployments required",
+      "f6: gRPC for inter-service communication (confirmed)",
+      "f7: PostgreSQL with ACID compliance",
+      "f8: Redis for caching and message queuing",
+      "f9: Kubernetes orchestration",
+      "f10: Apache Kafka for event streaming",
+      "f11: 6-month deadline",
+      "f12: MIT license",
+      "f14: Multi-tenancy support",
+      "f15: Per-tenant rate limiting",
+      "f16: Schema-per-tenant data isolation"
+    ]
+  },
+  "lr_very_long_technologies": {
+    "size": "very_long",
+    "query": "What technologies are used?",
+    "original_tokens": 1346,
+    "selected_tokens": 38,
+    "reduction_pct": 97.17682020802377,
+    "processing_time_ms": 0.05539999983739108,
+    "long_range_facts_total": 16,
+    "long_range_facts_retained": 3,
+    "long_range_recall_rate": 0.1875,
+    "missing_facts": [
+      "f3: Jordan is the architect",
+      "f4: Taylor is the lead developer",
+      "f5: Zero-downtime deployments required",
+      "f6: gRPC for inter-service communication (confirmed)",
+      "f7: PostgreSQL with ACID compliance",
+      "f8: Redis for caching and message queuing",
+      "f9: Kubernetes orchestration",
+      "f10: Apache Kafka for event streaming",
+      "f11: 6-month deadline",
+      "f12: MIT license",
+      "f14: Multi-tenancy support",
+      "f15: Per-tenant rate limiting",
+      "f16: Schema-per-tenant data isolation"
+    ]
+  },
+  "temp_short": {
+    "size": "short",
+    "original_tokens": 177,
+    "selected_tokens": 36,
+    "reduction_pct": 79.66101694915254,
+    "processing_time_ms": 0.06940000093891285,
+    "temporal_current_retained": 0,
+    "temporal_current_total": 0,
+    "temporal_accuracy_rate": 0.0,
+    "superseded_events_count": 0,
+    "contradictions_preserved": 0,
+    "contradictions_total": 0
+  },
+  "temp_medium": {
+    "size": "medium",
+    "original_tokens": 267,
+    "selected_tokens": 32,
+    "reduction_pct": 88.01498127340824,
+    "processing_time_ms": 0.05430000237538479,
+    "temporal_current_retained": 0,
+    "temporal_current_total": 0,
+    "temporal_accuracy_rate": 0.0,
+    "superseded_events_count": 0,
+    "contradictions_preserved": 0,
+    "contradictions_total": 0
+  },
+  "temp_long": {
+    "size": "long",
+    "original_tokens": 799,
+    "selected_tokens": 34,
+    "reduction_pct": 95.74468085106383,
+    "processing_time_ms": 0.07429999823216349,
+    "temporal_current_retained": 0,
+    "temporal_current_total": 4,
+    "temporal_accuracy_rate": 0.0,
+    "superseded_events_count": 3,
+    "contradictions_preserved": 0,
+    "contradictions_total": 4
+  },
+  "temp_very_long": {
+    "size": "very_long",
+    "original_tokens": 1346,
+    "selected_tokens": 38,
+    "reduction_pct": 97.17682020802377,
+    "processing_time_ms": 0.10150000161956996,
+    "temporal_current_retained": 0,
+    "temporal_current_total": 2,
+    "temporal_accuracy_rate": 0.0,
+    "superseded_events_count": 1,
+    "contradictions_preserved": 0,
+    "contradictions_total": 1
+  },
+  "contra_short": {
+    "size": "short",
+    "original_tokens": 177,
+    "selected_tokens": 36,
+    "reduction_pct": 79.66101694915254,
+    "processing_time_ms": 0.040800001443130895,
+    "contradictions_preserved": 0,
+    "contradictions_total": 0,
+    "contradiction_rate": 0.0,
+    "details": []
+  },
+  "contra_medium": {
+    "size": "medium",
+    "original_tokens": 267,
+    "selected_tokens": 32,
+    "reduction_pct": 88.01498127340824,
+    "processing_time_ms": 0.03449999712756835,
+    "contradictions_preserved": 0,
+    "contradictions_total": 0,
+    "contradiction_rate": 0.0,
+    "details": []
+  },
+  "contra_long": {
+    "size": "long",
+    "original_tokens": 799,
+    "selected_tokens": 34,
+    "reduction_pct": 95.74468085106383,
+    "processing_time_ms": 0.04780000017490238,
+    "contradictions_preserved": 0,
+    "contradictions_total": 4,
+    "contradiction_rate": 0.0,
+    "details": [
+      "contra_1: LOST — neither claim preserved",
+      "contra_2: LOST — neither claim preserved",
+      "contra_3: LOST — neither claim preserved",
+      "contra_4: LOST — neither claim preserved"
+    ]
+  },
+  "contra_very_long": {
+    "size": "very_long",
+    "original_tokens": 1346,
+    "selected_tokens": 38,
+    "reduction_pct": 97.17682020802377,
+    "processing_time_ms": 0.055900000006658956,
+    "contradictions_preserved": 0,
+    "contradictions_total": 1,
+    "contradiction_rate": 0.0,
+    "details": [
+      "contra_1: LOST — neither claim preserved"
+    ]
+  },
+  "token_short_no_compression": {
+    "size": "short",
+    "strategy": "no_compression",
+    "original_tokens": 225,
+    "selected_tokens": 36,
+    "reduction_pct": 84.0,
+    "processing_time_ms": 0.03479999941191636,
+    "budget_total": 999999,
+    "history_items_dropped": 0
+  },
+  "token_short_default": {
+    "size": "short",
+    "strategy": "default",
+    "original_tokens": 225,
+    "selected_tokens": 36,
+    "reduction_pct": 84.0,
+    "processing_time_ms": 0.02849999873433262,
+    "budget_total": 2000,
+    "history_items_dropped": 0
+  },
+  "token_short_conservative": {
+    "size": "short",
+    "strategy": "conservative",
+    "original_tokens": 225,
+    "selected_tokens": 36,
+    "reduction_pct": 84.0,
+    "processing_time_ms": 0.036299999919719994,
+    "budget_total": 4096,
+    "history_items_dropped": 0
+  },
+  "token_short_aggressive": {
+    "size": "short",
+    "strategy": "aggressive",
+    "original_tokens": 225,
+    "selected_tokens": 36,
+    "reduction_pct": 84.0,
+    "processing_time_ms": 0.025200002710334957,
+    "budget_total": 500,
+    "history_items_dropped": 0
+  },
+  "token_medium_no_compression": {
+    "size": "medium",
+    "strategy": "no_compression",
+    "original_tokens": 365,
+    "selected_tokens": 32,
+    "reduction_pct": 91.23287671232877,
+    "processing_time_ms": 0.02890000178012997,
+    "budget_total": 999999,
+    "history_items_dropped": 0
+  },
+  "token_medium_default": {
+    "size": "medium",
+    "strategy": "default",
+    "original_tokens": 365,
+    "selected_tokens": 32,
+    "reduction_pct": 91.23287671232877,
+    "processing_time_ms": 0.035499997466104105,
+    "budget_total": 2000,
+    "history_items_dropped": 0
+  },
+  "token_medium_conservative": {
+    "size": "medium",
+    "strategy": "conservative",
+    "original_tokens": 365,
+    "selected_tokens": 32,
+    "reduction_pct": 91.23287671232877,
+    "processing_time_ms": 0.028200000087963417,
+    "budget_total": 4096,
+    "history_items_dropped": 0
+  },
+  "token_medium_aggressive": {
+    "size": "medium",
+    "strategy": "aggressive",
+    "original_tokens": 365,
+    "selected_tokens": 32,
+    "reduction_pct": 91.23287671232877,
+    "processing_time_ms": 0.027800000680144876,
+    "budget_total": 500,
+    "history_items_dropped": 0
+  },
+  "token_long_no_compression": {
+    "size": "long",
+    "strategy": "no_compression",
+    "original_tokens": 1046,
+    "selected_tokens": 34,
+    "reduction_pct": 96.74952198852772,
+    "processing_time_ms": 0.04229999831295572,
+    "budget_total": 999999,
+    "history_items_dropped": 0
+  },
+  "token_long_default": {
+    "size": "long",
+    "strategy": "default",
+    "original_tokens": 1046,
+    "selected_tokens": 34,
+    "reduction_pct": 96.74952198852772,
+    "processing_time_ms": 0.03899999865097925,
+    "budget_total": 2000,
+    "history_items_dropped": 0
+  },
+  "token_long_conservative": {
+    "size": "long",
+    "strategy": "conservative",
+    "original_tokens": 1046,
+    "selected_tokens": 34,
+    "reduction_pct": 96.74952198852772,
+    "processing_time_ms": 0.05490000330610201,
+    "budget_total": 4096,
+    "history_items_dropped": 0
+  },
+  "token_long_aggressive": {
+    "size": "long",
+    "strategy": "aggressive",
+    "original_tokens": 1046,
+    "selected_tokens": 34,
+    "reduction_pct": 96.74952198852772,
+    "processing_time_ms": 0.03890000152750872,
+    "budget_total": 500,
+    "history_items_dropped": 0
+  },
+  "token_very_long_no_compression": {
+    "size": "very_long",
+    "strategy": "no_compression",
+    "original_tokens": 1747,
+    "selected_tokens": 38,
+    "reduction_pct": 97.82484258729251,
+    "processing_time_ms": 0.052600000344682485,
+    "budget_total": 999999,
+    "history_items_dropped": 0
+  },
+  "token_very_long_default": {
+    "size": "very_long",
+    "strategy": "default",
+    "original_tokens": 1747,
+    "selected_tokens": 38,
+    "reduction_pct": 97.82484258729251,
+    "processing_time_ms": 0.055199998314492404,
+    "budget_total": 2000,
+    "history_items_dropped": 0
+  },
+  "token_very_long_conservative": {
+    "size": "very_long",
+    "strategy": "conservative",
+    "original_tokens": 1747,
+    "selected_tokens": 38,
+    "reduction_pct": 97.82484258729251,
+    "processing_time_ms": 0.07449999975506216,
+    "budget_total": 4096,
+    "history_items_dropped": 0
+  },
+  "token_very_long_aggressive": {
+    "size": "very_long",
+    "strategy": "aggressive",
+    "original_tokens": 1747,
+    "selected_tokens": 38,
+    "reduction_pct": 97.82484258729251,
+    "processing_time_ms": 0.0548999996681232,
+    "budget_total": 500,
+    "history_items_dropped": 0
+  },
+  "perf_short": {
+    "size": "short",
+    "exchange_count": 10,
+    "original_tokens": 225,
+    "selected_tokens": 36,
+    "trials": 20,
+    "avg_ms": 0.016390000382671133,
+    "min_ms": 0.015699999494245276,
+    "max_ms": 0.018999999156221747,
+    "median_ms": 0.016099998902063817,
+    "p95_ms": 0.018999999156221747
+  },
+  "perf_medium": {
+    "size": "medium",
+    "exchange_count": 21,
+    "original_tokens": 365,
+    "selected_tokens": 32,
+    "trials": 20,
+    "avg_ms": 0.020105000112380367,
+    "min_ms": 0.01920000067912042,
+    "max_ms": 0.02680000034160912,
+    "median_ms": 0.019600000086938962,
+    "p95_ms": 0.02680000034160912
+  },
+  "perf_long": {
+    "size": "long",
+    "exchange_count": 54,
+    "original_tokens": 1046,
+    "selected_tokens": 34,
+    "trials": 20,
+    "avg_ms": 0.03571499946701806,
+    "min_ms": 0.03029999788850546,
+    "max_ms": 0.04939999780617654,
+    "median_ms": 0.03060000017285347,
+    "p95_ms": 0.04939999780617654
+  },
+  "perf_very_long": {
+    "size": "very_long",
+    "exchange_count": 86,
+    "original_tokens": 1747,
+    "selected_tokens": 38,
+    "trials": 20,
+    "avg_ms": 0.04651000035664765,
+    "min_ms": 0.042499999835854396,
+    "max_ms": 0.0610999995842576,
+    "median_ms": 0.04360000093583949,
+    "p95_ms": 0.0610999995842576
+  },
+  "cache_short": {
+    "size": "short",
+    "original_tokens": 225,
+    "selected_tokens": 36,
+    "prefix_changed": true,
+    "cache_lines_invalidated": 1,
+    "estimated_recompute_tokens": 10,
+    "recommendation": "proceed",
+    "details": [
+      "Minor prefix change: 1 lines"
+    ]
+  },
+  "cache_medium": {
+    "size": "medium",
+    "original_tokens": 365,
+    "selected_tokens": 32,
+    "prefix_changed": true,
+    "cache_lines_invalidated": 1,
+    "estimated_recompute_tokens": 10,
+    "recommendation": "proceed",
+    "details": [
+      "Minor prefix change: 1 lines"
+    ]
+  },
+  "cache_long": {
+    "size": "long",
+    "original_tokens": 1046,
+    "selected_tokens": 34,
+    "prefix_changed": true,
+    "cache_lines_invalidated": 1,
+    "estimated_recompute_tokens": 10,
+    "recommendation": "proceed",
+    "details": [
+      "Minor prefix change: 1 lines"
+    ]
+  },
+  "cache_very_long": {
+    "size": "very_long",
+    "original_tokens": 1747,
+    "selected_tokens": 38,
+    "prefix_changed": true,
+    "cache_lines_invalidated": 1,
+    "estimated_recompute_tokens": 10,
+    "recommendation": "proceed",
+    "details": [
+      "Minor prefix change: 1 lines"
+    ]
+  }
+}

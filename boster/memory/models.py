@@ -1,4 +1,13 @@
-"""Memory data models for the Context Memory Engine."""
+"""Memory data models for the Context Memory Engine.
+
+Three-tier architecture:
+  - RecentContext: raw recent exchanges, ordered, not rewritten
+  - EpisodicMemory: structured episodes with provenance refs
+  - SemanticMemory: persistent facts, relations, decisions, contradictions
+
+Each element carries provenance (source_ids) so compression never erases
+the raw trace that produced it.
+"""
 from __future__ import annotations
 
 import time
@@ -7,91 +16,243 @@ from typing import Any, Dict, List, Optional
 
 
 @dataclass
-class MemoryEntry:
-    """A single piece of stored memory."""
-    id: str
-    content: str
-    category: str  # fact, preference, decision, task, constraint, event, dead_end, resolved, reference
-    importance: float = 0.5  # 0.0 to 1.0
-    created_at: float = field(default_factory=time.time)
-    updated_at: float = field(default_factory=time.time)
-    access_count: int = 0
-    last_accessed: float = 0.0
-    tags: List[str] = field(default_factory=list)
-    source: str = ""  # Where this memory came from (session, tool, etc.)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    def touch(self) -> None:
-        """Update access metadata."""
-        self.access_count += 1
-        self.last_accessed = time.time()
-        self.updated_at = time.time()
+class SourceRef:
+    """Where a memory item came from."""
+    kind: str
+    id: str = ""
+    index: int = -1
+    role: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "id": self.id,
-            "content": self.content,
-            "category": self.category,
-            "importance": self.importance,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "access_count": self.access_count,
-            "last_accessed": self.last_accessed,
-            "tags": self.tags,
-            "source": self.source,
-            "metadata": self.metadata,
-        }
+        return {"kind": self.kind, "id": self.id, "index": self.index, "role": self.role}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MemoryEntry":
+    def from_dict(cls, data: Dict[str, Any]) -> "SourceRef":
         return cls(
-            id=data["id"],
-            content=data["content"],
-            category=data.get("category", "fact"),
-            importance=data.get("importance", 0.5),
-            created_at=data.get("created_at", time.time()),
-            updated_at=data.get("updated_at", time.time()),
-            access_count=data.get("access_count", 0),
-            last_accessed=data.get("last_accessed", 0.0),
-            tags=data.get("tags", []),
-            source=data.get("source", ""),
-            metadata=data.get("metadata", {}),
+            kind=data.get("kind", "message"),
+            id=data.get("id", ""),
+            index=data.get("index", -1),
+            role=data.get("role", ""),
         )
 
 
 @dataclass
-class MemorySummary:
-    """Compressed summary of a memory category."""
-    category: str
-    entries_count: int = 0
-    total_chars: int = 0
-    key_points: List[str] = field(default_factory=list)
-    unresolved_questions: List[str] = field(default_factory=list)
+class MemoryItem:
+    """Atomic piece of stored memory with provenance."""
+    id: str
+    content: str
+    kind: str = "fact"
+    source_ids: List[str] = field(default_factory=list)
+    created_at: float = field(default_factory=time.time)
+    updated_at: float = field(default_factory=time.time)
+    confidence: float = 0.7
+    status: str = "active"
+    subject: Optional[str] = None
+    predicate: Optional[str] = None
+    object: Optional[str] = None
 
-    def render(self, max_lines: int = 20) -> str:
-        parts = [f"## {self.category.title()} ({self.entries_count} entries)"]
-        for kp in self.key_points[:max_lines]:
-            parts.append(f"  - {kp}")
-        if self.unresolved_questions:
-            parts.append("### Open Questions")
-            for q in self.unresolved_questions:
-                parts.append(f"  - ? {q}")
-        return "\n".join(parts)
-
-
-@dataclass
-class MemoryQueryResult:
-    """Result of a memory retrieval query."""
-    entries: List[MemoryEntry] = field(default_factory=list)
-    summary: Optional[MemorySummary] = None
-    query: str = ""
-    relevance_threshold: float = 0.3
-    total_candidates: int = 0
+    def touch(self) -> None:
+        self.updated_at = time.time()
+        self.confidence = min(1.0, self.confidence + 0.05)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "query": self.query,
-            "total_candidates": self.total_candidates,
-            "entries": [e.to_dict() for e in self.entries],
-            "summary": self.summary.to_dict() if self.summary else None,
+            "id": self.id, "content": self.content, "kind": self.kind,
+            "source_ids": self.source_ids, "created_at": self.created_at,
+            "updated_at": self.updated_at, "confidence": self.confidence,
+            "status": self.status, "subject": self.subject,
+            "predicate": self.predicate, "object": self.object,
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "MemoryItem":
+        return cls(
+            id=data["id"], content=data["content"],
+            kind=data.get("kind", "fact"),
+            source_ids=data.get("source_ids", []),
+            created_at=data.get("created_at", time.time()),
+            updated_at=data.get("updated_at", time.time()),
+            confidence=data.get("confidence", 0.7),
+            status=data.get("status", "active"),
+            subject=data.get("subject"), predicate=data.get("predicate"),
+            object=data.get("object"),
+        )
+
+
+@dataclass
+class Entity:
+    """Named entity mentioned in conversation."""
+    name: str
+    kind: str = "unknown"
+    source_ids: List[str] = field(default_factory=list)
+    created_at: float = field(default_factory=time.time)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"name": self.name, "kind": self.kind, "source_ids": self.source_ids, "created_at": self.created_at}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Entity":
+        return cls(name=data["name"], kind=data.get("kind", "unknown"),
+                   source_ids=data.get("source_ids", []),
+                   created_at=data.get("created_at", time.time()))
+
+
+@dataclass
+class Relation:
+    """Explicit link between two entities."""
+    subject: str
+    predicate: str
+    object: str
+    source_id: str = ""
+    confidence: float = 0.7
+    created_at: float = field(default_factory=time.time)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"subject": self.subject, "predicate": self.predicate,
+                "object": self.object, "source_id": self.source_id,
+                "confidence": self.confidence, "created_at": self.created_at}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Relation":
+        return cls(subject=data["subject"], predicate=data["predicate"],
+                   object=data["object"], source_id=data.get("source_id", ""),
+                   confidence=data.get("confidence", 0.7),
+                   created_at=data.get("created_at", time.time()))
+
+
+@dataclass
+class Decision:
+    """A recorded decision with alternatives and status."""
+    value: str
+    reason: str = ""
+    alternatives: List[str] = field(default_factory=list)
+    date: float = field(default_factory=time.time)
+    status: str = "active"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"value": self.value, "reason": self.reason,
+                "alternatives": self.alternatives, "date": self.date,
+                "status": self.status}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Decision":
+        return cls(value=data["value"], reason=data.get("reason", ""),
+                   alternatives=data.get("alternatives", []),
+                   date=data.get("date", time.time()),
+                   status=data.get("status", "active"))
+
+
+@dataclass
+class Contradiction:
+    """Links incompatible elements without deleting either."""
+    id: str
+    claim_a: str
+    claim_b: str
+    source_a: str = ""
+    source_b: str = ""
+    resolved: bool = False
+    resolution: str = ""
+    created_at: float = field(default_factory=time.time)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"id": self.id, "claim_a": self.claim_a, "claim_b": self.claim_b,
+                "source_a": self.source_a, "source_b": self.source_b,
+                "resolved": self.resolved, "resolution": self.resolution,
+                "created_at": self.created_at}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Contradiction":
+        return cls(id=data["id"], claim_a=data["claim_a"], claim_b=data["claim_b"],
+                   source_a=data.get("source_a", ""), source_b=data.get("source_b", ""),
+                   resolved=data.get("resolved", False),
+                   resolution=data.get("resolution", ""),
+                   created_at=data.get("created_at", time.time()))
+
+
+@dataclass
+class RecentContext:
+    """Raw recent exchanges, ordered, not rewritten."""
+    messages: List[Dict[str, Any]] = field(default_factory=list)
+    max_messages: int = 20
+
+    def add(self, message: Dict[str, Any]) -> None:
+        self.messages.append(message)
+        if len(self.messages) > self.max_messages:
+            self.messages = self.messages[-self.max_messages:]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"messages": self.messages, "count": len(self.messages)}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RecentContext":
+        rc = cls(max_messages=data.get("max_messages", 20))
+        rc.messages = data.get("messages", [])
+        return rc
+
+
+@dataclass
+class EpisodicMemory:
+    """Structured episodes from older exchanges."""
+    episodes: List[Dict[str, Any]] = field(default_factory=list)
+
+    def add_episode(self, episode: Dict[str, Any]) -> None:
+        self.episodes.append(episode)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"episodes": self.episodes}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "EpisodicMemory":
+        em = cls()
+        em.episodes = data.get("episodes", [])
+        return em
+
+
+@dataclass
+class SemanticMemory:
+    """Persistent facts, relations, decisions, contradictions."""
+    items: List[MemoryItem] = field(default_factory=list)
+    entities: Dict[str, Entity] = field(default_factory=dict)
+    relations: List[Relation] = field(default_factory=list)
+    decisions: List[Decision] = field(default_factory=list)
+    contradictions: List[Contradiction] = field(default_factory=list)
+
+    def add_item(self, item: MemoryItem) -> None:
+        self.items.append(item)
+
+    def upsert_entity(self, entity: Entity) -> None:
+        self.entities[entity.name.lower()] = entity
+
+    def add_relation(self, relation: Relation) -> None:
+        self.relations.append(relation)
+
+    def add_decision(self, decision: Decision) -> None:
+        self.decisions.append(decision)
+
+    def add_contradiction(self, contradiction: Contradiction) -> None:
+        self.contradictions.append(contradiction)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "items": [i.to_dict() for i in self.items],
+            "entities": {k: v.to_dict() for k, v in self.entities.items()},
+            "relations": [r.to_dict() for r in self.relations],
+            "decisions": [d.to_dict() for d in self.decisions],
+            "contradictions": [c.to_dict() for c in self.contradictions],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SemanticMemory":
+        sm = cls()
+        sm.items = [MemoryItem.from_dict(d) for d in data.get("items", [])]
+        sm.entities = {k: Entity.from_dict(v) for k, v in data.get("entities", {}).items()}
+        sm.relations = [Relation.from_dict(d) for d in data.get("relations", [])]
+        sm.decisions = [Decision.from_dict(d) for d in data.get("decisions", [])]
+        sm.contradictions = [Contradiction.from_dict(d) for d in data.get("contradictions", [])]
+        return sm
+
+
+# Backward compat
+MemoryEntry = MemoryItem
+MemorySummary = EpisodicMemory
+MemoryQueryResult = Dict[str, Any]

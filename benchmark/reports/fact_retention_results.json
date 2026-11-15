@@ -1,0 +1,178 @@
+{
+  "short": {
+    "size": "short",
+    "exchange_count": 10,
+    "original_tokens": 224,
+    "selected_tokens": 223,
+    "reduction_pct": 0.44642857142856984,
+    "processing_time_ms": 0.00019999788491986692,
+    "mention_retention": {
+      "rate": 1.0,
+      "retained": 6,
+      "total": 6
+    },
+    "structured_entity_retention": {
+      "rate": 0.8333333333333334,
+      "retained": 5,
+      "total": 6
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 3
+    },
+    "decision_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 2
+    },
+    "contradiction_preservation": {
+      "rate": 1.0,
+      "preserved": 0,
+      "total": 0
+    },
+    "long_range_recall": {
+      "rate": 1.0,
+      "retained": 3,
+      "total": 3
+    },
+    "recent_messages": 5,
+    "semantic_items": 5,
+    "entities": 7,
+    "relations": 0,
+    "decisions": 0,
+    "contradictions": 0
+  },
+  "medium": {
+    "size": "medium",
+    "exchange_count": 21,
+    "original_tokens": 364,
+    "selected_tokens": 363,
+    "reduction_pct": 0.27472527472527375,
+    "processing_time_ms": 0.000100000761449337,
+    "mention_retention": {
+      "rate": 1.0,
+      "retained": 12,
+      "total": 12
+    },
+    "structured_entity_retention": {
+      "rate": 0.5833333333333334,
+      "retained": 7,
+      "total": 12
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 5
+    },
+    "decision_retention": {
+      "rate": 0.25,
+      "retained": 1,
+      "total": 4
+    },
+    "contradiction_preservation": {
+      "rate": 1.0,
+      "preserved": 0,
+      "total": 0
+    },
+    "long_range_recall": {
+      "rate": 1.0,
+      "retained": 9,
+      "total": 9
+    },
+    "recent_messages": 5,
+    "semantic_items": 16,
+    "entities": 18,
+    "relations": 0,
+    "decisions": 2,
+    "contradictions": 0
+  },
+  "long": {
+    "size": "long",
+    "exchange_count": 54,
+    "original_tokens": 1046,
+    "selected_tokens": 1040,
+    "reduction_pct": 0.5736137667303964,
+    "processing_time_ms": 0.000100000761449337,
+    "mention_retention": {
+      "rate": 1.0,
+      "retained": 18,
+      "total": 18
+    },
+    "structured_entity_retention": {
+      "rate": 0.7222222222222222,
+      "retained": 13,
+      "total": 18
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 3
+    },
+    "decision_retention": {
+      "rate": 0.4,
+      "retained": 2,
+      "total": 5
+    },
+    "contradiction_preservation": {
+      "rate": 0.5,
+      "preserved": 2.0,
+      "total": 4
+    },
+    "long_range_recall": {
+      "rate": 1.0,
+      "retained": 10,
+      "total": 10
+    },
+    "recent_messages": 5,
+    "semantic_items": 49,
+    "entities": 35,
+    "relations": 0,
+    "decisions": 7,
+    "contradictions": 0
+  },
+  "very_long": {
+    "size": "very_long",
+    "exchange_count": 86,
+    "original_tokens": 1746,
+    "selected_tokens": 1737,
+    "reduction_pct": 0.5154639175257714,
+    "processing_time_ms": 0.000100000761449337,
+    "mention_retention": {
+      "rate": 1.0,
+      "retained": 16,
+      "total": 16
+    },
+    "structured_entity_retention": {
+      "rate": 0.6875,
+      "retained": 11,
+      "total": 16
+    },
+    "relationship_retention": {
+      "rate": 0.0,
+      "retained": 0,
+      "total": 6
+    },
+    "decision_retention": {
+      "rate": 1.0,
+      "retained": 0,
+      "total": 0
+    },
+    "contradiction_preservation": {
+      "rate": 0.5,
+      "preserved": 0.5,
+      "total": 1
+    },
+    "long_range_recall": {
+      "rate": 1.0,
+      "retained": 5,
+      "total": 5
+    },
+    "recent_messages": 5,
+    "semantic_items": 81,
+    "entities": 29,
+    "relations": 0,
+    "decisions": 3,
+    "contradictions": 0
+  }
+}

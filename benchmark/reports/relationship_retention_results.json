@@ -1,0 +1,134 @@
+{
+  "short": {
+    "size": "short",
+    "exchange_count": 10,
+    "original_tokens": 224,
+    "selected_tokens": 223,
+    "reduction_pct": 0.44642857142856984,
+    "processing_time_ms": 0.000200001522898674,
+    "fact_retention": {
+      "rate": 1.0,
+      "retained": 6,
+      "total": 6
+    },
+    "relationship_retention": {
+      "rate": 1.0,
+      "retained": 3,
+      "total": 3
+    },
+    "decision_retention": {
+      "rate": 0.5,
+      "retained": 1,
+      "total": 2
+    },
+    "contradiction_preservation": {
+      "rate": 1.0,
+      "preserved": 0,
+      "total": 0
+    },
+    "semantic_items": 5,
+    "entities": 1,
+    "relations": 0,
+    "decisions": 0,
+    "contradictions": 0
+  },
+  "medium": {
+    "size": "medium",
+    "exchange_count": 21,
+    "original_tokens": 364,
+    "selected_tokens": 363,
+    "reduction_pct": 0.27472527472527375,
+    "processing_time_ms": 9.999712347052991e-05,
+    "fact_retention": {
+      "rate": 1.0,
+      "retained": 12,
+      "total": 12
+    },
+    "relationship_retention": {
+      "rate": 1.0,
+      "retained": 5,
+      "total": 5
+    },
+    "decision_retention": {
+      "rate": 1.0,
+      "retained": 4,
+      "total": 4
+    },
+    "contradiction_preservation": {
+      "rate": 1.0,
+      "preserved": 0,
+      "total": 0
+    },
+    "semantic_items": 16,
+    "entities": 2,
+    "relations": 0,
+    "decisions": 0,
+    "contradictions": 0
+  },
+  "long": {
+    "size": "long",
+    "exchange_count": 54,
+    "original_tokens": 1046,
+    "selected_tokens": 1040,
+    "reduction_pct": 0.5736137667303964,
+    "processing_time_ms": 0.000100000761449337,
+    "fact_retention": {
+      "rate": 1.0,
+      "retained": 18,
+      "total": 18
+    },
+    "relationship_retention": {
+      "rate": 1.0,
+      "retained": 3,
+      "total": 3
+    },
+    "decision_retention": {
+      "rate": 0.8,
+      "retained": 4,
+      "total": 5
+    },
+    "contradiction_preservation": {
+      "rate": 0.5,
+      "preserved": 2.0,
+      "total": 4
+    },
+    "semantic_items": 49,
+    "entities": 6,
+    "relations": 0,
+    "decisions": 3,
+    "contradictions": 0
+  },
+  "very_long": {
+    "size": "very_long",
+    "exchange_count": 86,
+    "original_tokens": 1746,
+    "selected_tokens": 1737,
+    "reduction_pct": 0.5154639175257714,
+    "processing_time_ms": 0.000100000761449337,
+    "fact_retention": {
+      "rate": 1.0,
+      "retained": 16,
+      "total": 16
+    },
+    "relationship_retention": {
+      "rate": 1.0,
+      "retained": 6,
+      "total": 6
+    },
+    "decision_retention": {
+      "rate": 1.0,
+      "retained": 0,
+      "total": 0
+    },
+    "contradiction_preservation": {
+      "rate": 0.5,
+      "preserved": 0.5,
+      "total": 1
+    },
+    "semantic_items": 81,
+    "entities": 9,
+    "relations": 0,
+    "decisions": 1,
+    "contradictions": 0
+  }
+}

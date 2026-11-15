@@ -7,9 +7,15 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 
-from .models import MemoryEntry, MemoryQueryResult, MemorySummary
+from .models import MemoryItem, RecentContext, SemanticMemory
 
 logger = logging.getLogger("boster.memory")
+
+# Backward compat aliases
+MemoryEntry = MemoryItem
+MemorySummary = None  # Deprecated
+MemoryQueryResult = Dict[str, Any]
+
 
 # ── Category keywords for classification ────────────────────────────
 
@@ -72,7 +78,7 @@ class MemoryManager:
     """Manages persistent structured memory."""
 
     def __init__(self, max_entries: int = 500, expiration_hours: float = 720.0):
-        self._entries: Dict[str, MemoryEntry] = {}
+        self._entries: Dict[str, MemoryItem] = {}
         self.max_entries = max_entries
         self.expiration_hours = expiration_hours
 
@@ -87,7 +93,7 @@ class MemoryManager:
         importance: float = 0.5,
         tags: Optional[List[str]] = None,
         source: str = "",
-    ) -> MemoryEntry:
+    ) -> MemoryItem:
         """Add a memory entry."""
         if not content.strip():
             raise ValueError("Memory content cannot be empty")
@@ -99,24 +105,22 @@ class MemoryManager:
         if entry_id in self._entries:
             entry = self._entries[entry_id]
             entry.content = content
-            entry.importance = max(entry.importance, importance)
+            entry.confidence = max(entry.confidence, importance)
             entry.updated_at = time.time()
             if tags:
-                entry.tags = list(set(entry.tags + tags))
-            entry.touch()
+                entry.source_ids = list(set(entry.source_ids + tags))
             return entry
 
         # Evict oldest low-importance entries if at capacity
         if len(self._entries) >= self.max_entries:
             self._evict_lowest_importance(1)
 
-        entry = MemoryEntry(
+        entry = MemoryItem(
             id=entry_id,
             content=content.strip(),
-            category=cat,
-            importance=importance,
-            tags=tags or [],
-            source=source,
+            kind=cat,
+            source_ids=[source] if source else [],
+            confidence=importance,
         )
         self._entries[entry_id] = entry
         logger.debug("Added memory entry: %s (%s)", entry_id, cat)
@@ -130,23 +134,22 @@ class MemoryManager:
     ) -> MemoryQueryResult:
         """Retrieve relevant memory entries."""
         if not query or not self._entries:
-            return MemoryQueryResult(query=query)
+            return {"query": query, "entries": [], "total": 0}
 
         query_words = set(query.lower().split())
         scored: List[tuple] = []
 
         for entry in self._entries.values():
-            entry.touch()
             entry_words = set(re.sub(r"[^\w\s]", " ", entry.content).lower().split())
             overlap = len(query_words & entry_words)
             if overlap == 0:
                 continue
 
             # Relevance score: overlap + recency + importance
-            time_score = min(1.0, (time.time() - entry.created_at) / 86400)  # newer = higher
+            time_score = min(1.0, (time.time() - entry.created_at) / 86400)
             relevance = (overlap / max(len(query_words), 3)) * 0.5
             recency = time_score * 0.2
-            importance = entry.importance * 0.3
+            importance = entry.confidence * 0.3
             score = relevance + recency + importance
 
             if score >= relevance_threshold:
@@ -155,36 +158,26 @@ class MemoryManager:
         scored.sort(key=lambda x: -x[0])
         entries = [e for _, e in scored[:max_results]]
 
-        # Build summary by category
-        summaries: Dict[str, MemorySummary] = {}
-        for entry in entries:
-            if entry.category not in summaries:
-                summaries[entry.category] = MemorySummary(category=entry.category)
-            summaries[entry.category].entries_count += 1
-            summaries[entry.category].total_chars += len(entry.content)
-            if len(summaries[entry.category].key_points) < 5:
-                summaries[entry.category].key_points.append(entry.content[:80])
-
-        return MemoryQueryResult(
-            entries=entries,
-            query=query,
-            relevance_threshold=relevance_threshold,
-            total_candidates=len(scored),
-        )
+        return {
+            "query": query,
+            "entries": entries,
+            "relevance_threshold": relevance_threshold,
+            "total": len(scored),
+        }
 
     def consolidate(self) -> int:
         """Consolidate duplicate or related entries. Returns count of merged entries."""
         merged = 0
-        by_category: Dict[str, List[MemoryEntry]] = {}
+        by_kind: Dict[str, List[MemoryItem]] = {}
 
         for entry in self._entries.values():
-            by_category.setdefault(entry.category, []).append(entry)
+            by_kind.setdefault(entry.kind, []).append(entry)
 
-        for category, entries in by_category.items():
+        for kind, entries in by_kind.items():
             if len(entries) <= 1:
                 continue
-            # Sort by importance descending
-            entries.sort(key=lambda e: -e.importance)
+            # Sort by confidence descending
+            entries.sort(key=lambda e: -e.confidence)
             # Keep top entry, mark others as consolidated
             for entry in entries[1:]:
                 logger.debug("Consolidating low-importance entry: %s", entry.id)
@@ -202,22 +195,22 @@ class MemoryManager:
             del self._entries[eid]
         return len(to_remove)
 
-    def get_all(self, category: Optional[str] = None) -> List[MemoryEntry]:
+    def get_all(self, category: Optional[str] = None) -> List[MemoryItem]:
         """Get all entries, optionally filtered by category."""
         if category:
-            return [e for e in self._entries.values() if e.category == category]
+            return [e for e in self._entries.values() if e.kind == category]
         return list(self._entries.values())
 
     def get_summary(self) -> Dict[str, Any]:
         """Get summary of all memory."""
         cats: Dict[str, int] = {}
         for entry in self._entries.values():
-            cats[entry.category] = cats.get(entry.category, 0) + 1
+            cats[entry.kind] = cats.get(entry.kind, 0) + 1
         return {
             "total_entries": len(self._entries),
             "by_category": cats,
             "avg_importance": (
-                sum(e.importance for e in self._entries.values()) / max(len(self._entries), 1)
+                sum(e.confidence for e in self._entries.values()) / max(len(self._entries), 1)
             ),
         }
 
@@ -225,7 +218,7 @@ class MemoryManager:
         """Remove lowest-importance entries to make room."""
         sorted_entries = sorted(
             self._entries.items(),
-            key=lambda x: x[1].importance,
+            key=lambda x: x[1].confidence,
         )
         for eid, _ in sorted_entries[:count]:
             del self._entries[eid]
