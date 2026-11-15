@@ -1,9 +1,10 @@
-"""boster CLI: compress | history | budget | count"""
+"""boster CLI: compress | history | budget | count | adaptive | pipeline"""
 from __future__ import annotations
 import argparse, json, sys
 
-from . import (BudgetConfig, ContextBudget, compress_history, compress_output,
-               estimate_provider_tokens, format_compressed_history, savings_report)
+from . import (BudgetConfig, ContextBudget, PipelineResult, adaptive_compress,
+               compress_history, compress_output, estimate_provider_tokens,
+               format_compressed_history, run_pipeline, savings_report)
 
 
 def _read(path):
@@ -24,6 +25,13 @@ def cmd_compress(a):
     sys.stdout.write(out if out.endswith("\n") else out + "\n")
     if a.stats:
         print(json.dumps(savings_report(raw, out)), file=sys.stderr)
+
+
+def cmd_adaptive(a):
+    raw = _read(a.file)
+    out, report = adaptive_compress(raw, max_chars=a.max_chars or 4000)
+    sys.stdout.write(out if out.endswith("\n") else out + "\n")
+    print(json.dumps(report, indent=2), file=sys.stderr)
 
 
 def cmd_history(a):
@@ -47,6 +55,30 @@ def cmd_count(a):
     print(estimate_provider_tokens(_read(a.file), a.model))
 
 
+def cmd_pipeline(a):
+    data = json.loads(_read(a.file))
+    messages = data["messages"] if isinstance(data, dict) else data
+    system = data.get("system_prompt", "")
+    r = run_pipeline(
+        messages=messages,
+        system_prompt=system,
+        max_total_tokens=a.total,
+        compress_output_msgs=not a.no_compress,
+        summarize_history=not a.no_summarize,
+        model=a.model,
+    )
+    if a.json:
+        out = {
+            "selected_messages": r.selected_messages,
+            "compressed_system": r.compressed_system,
+            "total_original_tokens": r.total_original_tokens,
+            "total_selected_tokens": r.total_selected_tokens,
+        }
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    else:
+        print(r.report())
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="boster", description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -65,6 +97,18 @@ def main(argv=None):
     n = sub.add_parser("count", help="estimate tokens of text")
     n.add_argument("file", nargs="?"); n.add_argument("--model", default="")
     n.set_defaults(func=cmd_count)
+    a2 = sub.add_parser("adaptive", help="smart compression for very long text (auto-detect format)")
+    a2.add_argument("file", nargs="?")
+    a2.add_argument("--max-chars", type=int, default=4000)
+    a2.set_defaults(func=cmd_adaptive)
+    p2 = sub.add_parser("pipeline", help="full pipeline: compress + summarize + budget (JSON input)")
+    p2.add_argument("file", nargs="?")
+    p2.add_argument("--total", type=int, default=20000)
+    p2.add_argument("--model", default="")
+    p2.add_argument("--no-compress", action="store_true")
+    p2.add_argument("--no-summarize", action="store_true")
+    p2.add_argument("--json", action="store_true")
+    p2.set_defaults(func=cmd_pipeline)
     a = p.parse_args(argv)
     a.func(a)
 
