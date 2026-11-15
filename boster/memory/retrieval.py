@@ -37,7 +37,7 @@ def lexical_search(
         scored.append((score, entry))
 
     scored.sort(key=lambda x: -x[0])
-    entries = [e for _, e in scored[:max_results] if score >= threshold]
+    entries = [e for s, e in scored[:max_results] if s >= threshold]
 
     return MemoryQueryResult(
         entries=entries,

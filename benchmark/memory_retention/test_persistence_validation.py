@@ -31,8 +31,8 @@ from boster.memory.persistence import MemoryPersistence
 class TestPersistenceSaveReload:
     """Test complete save/reload cycle."""
 
-    def test_full_cycle(self):
-        """Test save and reload of all memory types."""
+    def test_full_cycle(self, tmp_path):
+        """Test a real disk save/reload of all memory types (not in-memory)."""
         # Create semantic memory with all types
         sm = SemanticMemory()
         sm.add_item(MemoryItem(id="fact1", content="Orion uses Python", kind="fact"))
@@ -51,19 +51,12 @@ class TestPersistenceSaveReload:
         em = EpisodicMemory()
         em.add_episode({"type": "decision", "content": "Chose SQLite"})
 
-        # Serialize
-        data = {
-            "semantic": sm.to_dict(),
-            "recent": rc.to_dict(),
-            "episodic": em.to_dict(),
-        }
+        # Real disk round-trip
+        path = tmp_path / "memory.json"
+        assert MemoryPersistence().save_state(rc, sm, em, path=path) is True
+        restored_rc, restored_em, restored_sm = MemoryPersistence().load_state(path=path)
 
-        # Deserialize
-        restored_sm = SemanticMemory.from_dict(data["semantic"])
-        restored_rc = RecentContext.from_dict(data["recent"])
-        restored_em = EpisodicMemory.from_dict(data["episodic"])
-
-        # Verify
+        # Verify every level survived the disk round-trip
         assert len(restored_sm.items) == 1
         assert len(restored_sm.entities) == 1
         assert len(restored_sm.relations) == 1

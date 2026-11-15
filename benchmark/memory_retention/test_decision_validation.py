@@ -66,16 +66,33 @@ class TestDecisionValidation:
         for dec in semantic_mem.decisions:
             assert dec.status == "active", f"Expected active status, got: {dec.status}"
 
-    def test_decision_date_set(self):
-        """Decision should have a date set."""
+    def test_decision_date_from_source_timestamp(self):
+        """A decision's date comes from its source message, never from now()."""
+        exchanges = [
+            {"role": "user", "content": "Let's use Docker for containerization.",
+             "timestamp": 1700000000.0},
+        ]
+        recent_ctx, semantic_mem = consolidate_exchanges(exchanges, keep_recent=0)
+
+        assert semantic_mem.decisions
+        for dec in semantic_mem.decisions:
+            assert dec.date == 1700000000.0
+
+    def test_decision_date_absent_without_source_timestamp(self):
+        """No source timestamp -> no date. A date is never fabricated.
+
+        (Previously this asserted ``date > 0``, which required inventing a
+        wall-clock date for an undated message — the exact behaviour Phase
+        2.2.3 forbids.)
+        """
         exchanges = [
             {"role": "user", "content": "Let's use Docker for containerization."},
-            {"role": "assistant", "content": "Decision noted: Docker."},
         ]
-        recent_ctx, semantic_mem = consolidate_exchanges(exchanges, keep_recent=1)
+        recent_ctx, semantic_mem = consolidate_exchanges(exchanges, keep_recent=0)
 
+        assert semantic_mem.decisions
         for dec in semantic_mem.decisions:
-            assert dec.date > 0, "Expected date to be set"
+            assert dec.date is None
 
     def test_suggestion_not_converted_to_decision(self):
         """A suggestion should not be silently converted to a decision."""
@@ -153,7 +170,7 @@ class TestDecisionModel:
         data = dec.to_dict()
         restored = Decision.from_dict(data)
         assert restored.value == "Use Docker"
-        assert restored.date > 0
+        assert restored.date is not None and restored.date > 0
 
 
 class TestDecisionExtraction:

@@ -25,7 +25,10 @@ class TestIntegration:
 
         recent_ctx, semantic_mem = consolidate_exchanges(exchanges, keep_recent=0)
 
-        assert len(recent_ctx.messages) == 3
+        # keep_recent=0 => nothing kept verbatim, all 3 exchanges consolidated
+        # (never dropped): they must reappear as semantic items.
+        assert len(recent_ctx.messages) == 0
+        assert len(semantic_mem.items) == 3
         assert len(semantic_mem.entities) > 0
         assert len(semantic_mem.relations) > 0
 
@@ -94,9 +97,10 @@ class TestIntegration:
         ]
         recent_ctx, semantic_mem = consolidate_exchanges(exchanges, keep_recent=0)
         
-        # Verify basic functionality
-        assert len(recent_ctx.messages) == 2
-        assert len(semantic_mem.items) > 0
+        # Verify basic functionality: with keep_recent=0 both exchanges are
+        # consolidated (not lost) -> recent empty, 2 semantic items.
+        assert len(recent_ctx.messages) == 0
+        assert len(semantic_mem.items) == 2
 
 
 class TestBenchmarkIntegration:

@@ -3,6 +3,7 @@ from .models import (
     MemoryItem, Entity, Relation, Decision, Contradiction,
     RecentContext, EpisodicMemory, SemanticMemory,
     MemoryEntry, MemorySummary, MemoryQueryResult,
+    Episode, EPISODE_STATUSES,
 )
 from .manager import MemoryManager, classify_entry
 from .summarizer import extract_summary, summarize_to_memory
@@ -14,6 +15,7 @@ __all__ = [
     "MemoryItem", "Entity", "Relation", "Decision", "Contradiction",
     "RecentContext", "EpisodicMemory", "SemanticMemory",
     "MemoryEntry", "MemorySummary", "MemoryQueryResult",
+    "Episode", "EPISODE_STATUSES",
     "MemoryManager", "classify_entry",
     "extract_summary", "summarize_to_memory",
     "consolidate_exchanges", "consolidate_similar", "deduplicate_by_category",

@@ -18,7 +18,7 @@ from .history_compressor import HistorySummary, compress_history, format_compres
 from .context_budget import BudgetConfig as OldBudgetConfig, ContextBudget, SelectionResult as OldSelectionResult, estimate_messages_tokens as old_estimate_messages_tokens, estimate_provider_tokens as old_estimate_provider_tokens
 from .pipeline import PipelineResult, run_pipeline
 from .memory.manager import MemoryManager
-from .memory.models import MemoryEntry, MemorySummary, MemoryQueryResult
+from .memory.models import MemoryEntry, MemorySummary, MemoryQueryResult, Episode
 from .memory.summarizer import extract_summary, summarize_to_memory
 from .memory.retrieval import hybrid_search, lexical_search, bm25_style_search
 from .memory.persistence import MemoryPersistence
@@ -91,6 +91,7 @@ __all__ = [
     "MemoryEntry",
     "MemorySummary",
     "MemoryQueryResult",
+    "Episode",
     "extract_summary",
     "summarize_to_memory",
     "hybrid_search",

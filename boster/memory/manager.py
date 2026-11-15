@@ -7,14 +7,18 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 
-from .models import MemoryItem, RecentContext, SemanticMemory
+from .models import (
+    MemoryItem,
+    MemoryQueryResult,
+    MemorySummary,
+    RecentContext,
+    SemanticMemory,
+)
 
 logger = logging.getLogger("boster.memory")
 
-# Backward compat aliases
+# Backward compat alias (MemoryEntry is the same atomic unit as MemoryItem)
 MemoryEntry = MemoryItem
-MemorySummary = None  # Deprecated
-MemoryQueryResult = Dict[str, Any]
 
 
 # ── Category keywords for classification ────────────────────────────
@@ -131,11 +135,18 @@ class MemoryManager:
         query: str,
         max_results: int = 10,
         relevance_threshold: float = 0.3,
+        now: Optional[float] = None,
     ) -> MemoryQueryResult:
-        """Retrieve relevant memory entries."""
-        if not query or not self._entries:
-            return {"query": query, "entries": [], "total": 0}
+        """Retrieve relevant memory entries.
 
+        ``now`` overrides the clock used for the recency term, so a ranking can
+        be reproduced exactly; by default the wall clock is used (recency is
+        time-dependent by design).
+        """
+        if not query or not self._entries:
+            return MemoryQueryResult(query=query)
+
+        current_time = time.time() if now is None else float(now)
         query_words = set(query.lower().split())
         scored: List[tuple] = []
 
@@ -146,7 +157,7 @@ class MemoryManager:
                 continue
 
             # Relevance score: overlap + recency + importance
-            time_score = min(1.0, (time.time() - entry.created_at) / 86400)
+            time_score = min(1.0, (current_time - entry.created_at) / 86400)
             relevance = (overlap / max(len(query_words), 3)) * 0.5
             recency = time_score * 0.2
             importance = entry.confidence * 0.3
@@ -158,12 +169,12 @@ class MemoryManager:
         scored.sort(key=lambda x: -x[0])
         entries = [e for _, e in scored[:max_results]]
 
-        return {
-            "query": query,
-            "entries": entries,
-            "relevance_threshold": relevance_threshold,
-            "total": len(scored),
-        }
+        return MemoryQueryResult(
+            entries=entries,
+            query=query,
+            relevance_threshold=relevance_threshold,
+            total_candidates=len(scored),
+        )
 
     def consolidate(self) -> int:
         """Consolidate duplicate or related entries. Returns count of merged entries."""
